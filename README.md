@@ -5,9 +5,9 @@ A reverse shell works by the remote computer sending its shell to a specific use
 
 **pinky** is a minimal php implementantion of a reverse remote administration tool.
 
-### Markdown
+### Why?
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+Truth is there are a lot of implementations out there in other programming languages, but not a good one written in PHP. Most of the code makes use of the **shell_exec** function to execute commands and this is very limited. **pynky** use proc_open to pass  input and catch the output to send it through a socket connection.
 
 ```markdown
 Syntax highlighted code block
