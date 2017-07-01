@@ -13,10 +13,18 @@ Truth is there are a lot of implementations out there in other programming langu
 
 All you need is to execute the file: pynky.php using the web browser or within the CLI.
 
+```
+$ php pinky.php -a 127.0.0.1 -p 3391 -t tcp
+```
+
 **Client**
 
-![alt text](https://github.com/davidtavarez/pinky/blob/master/pinky_client.png?raw=true "Client")
+![pinky client](https://github.com/davidtavarez/pinky/blob/master/pinky_client.png?raw=true "Client")
 
 **Server**
 
-![alt text](https://github.com/davidtavarez/pinky/blob/master/pinky_server.png?raw=true "Server")
+![pinky server](https://github.com/davidtavarez/pinky/blob/master/pinky_server.png?raw=true "Server")
+
+**URL**
+
+![pinky url](https://github.com/davidtavarez/pinky/blob/master/pinky_url.png?raw=true "URL")
