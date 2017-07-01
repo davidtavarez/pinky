@@ -1,8 +1,9 @@
-## Welcome to GitHub Pages
+## pinky
+### The (reverse) PHP mini RAT
 
-You can use the [editor on GitHub](https://github.com/davidtavarez/pinky/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+A reverse shell works by the remote computer sending its shell to a specific user, rather than binding it to a port, which would be unreachable in many circumstances. This allows run commands over the remote server.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+**pinky** is a minimal php implementantion of a reverse remote administration tool.
 
 ### Markdown
 
