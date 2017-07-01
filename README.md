@@ -14,7 +14,9 @@ Truth is there are a lot of implementations out there in other programming langu
 All you need is to execute the file: pynky.php using the web browser or within the CLI.
 
 **Client**
-(https://github.com/davidtavarez/pinky/blob/master/pinky_client.png?raw=true "Client")
+
+![alt text](https://github.com/davidtavarez/pinky/blob/master/pinky_client.png?raw=true "Client")
 
 **Server**
-(https://github.com/davidtavarez/pinky/blob/master/pinky_server.png?raw=true "Server")
+
+![alt text](https://github.com/davidtavarez/pinky/blob/master/pinky_server.png?raw=true "Server")
