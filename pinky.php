@@ -42,7 +42,7 @@ $type = 'tcp';
 if (PHP_SAPI === 'cli' || empty ( $_SERVER ['REMOTE_ADDR'] )) {
 	$params = "a:";
 	$params .= "p:";
-	$params .= "t::";
+	$params .= "t:";
 	
 	$options = getopt ( $params );
 	
