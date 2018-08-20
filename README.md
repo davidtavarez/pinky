@@ -1,4 +1,4 @@
-## pinky
+## pinky v2
 
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2.png "pinky v2")
 
