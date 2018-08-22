@@ -1,8 +1,11 @@
 #!/usr/bin/env php
 <?php
+$version = "2.0";
+print_help($version);
 
-if (count($argv) != 2) {
-    echo "\n\tI'm expecting a json file... Could you pass it as one parameter, please? -_-!\n\n";
+$arguments_count = count($argv);
+
+if ($arguments_count == 1) {
     exit(-1);
 }
 
@@ -206,7 +209,6 @@ function is_json_valid($config)
 
 function print_banner()
 {
-    echo chr(27) . chr(91) . 'H' . chr(27) . chr(91) . 'J'; //^[H^[J
     $pinky = <<<EOT
         _       _          
        (_)     | |         
@@ -464,6 +466,7 @@ EOT;
                       /    /    .'           `.    \    \       
                      (        .'               `.   \    )      
                       \._____.'                   `.____/  dp                                               
+
 EOT;
 
     $amiga_shell = <<<EOT
@@ -664,9 +667,48 @@ EOT;
         $love,
         $monkeys
     );
+    echo chr(27) . chr(91) . 'H' . chr(27) . chr(91) . 'J'; //^[H^[J
     echo "\e[1m";
     echo $ascii_art[rand(0, 19)];
     echo "\e[0m";
+}
+
+function print_help($version){
+    $author = "David Tavarez";
+    $twitter = "@davidtavarez";
+    $web = "https://davidtavarez.github.io/";
+
+    $banner = <<<EOT
+        _       _          
+  _ __ (_)_ __ | | ___   _ 
+ | '_ \| | '_ \| |/ / | | |
+ | |_) | | | | |   <| |_| |
+ | .__/|_|_| |_|_|\_\\__,  |
+ |_|                 |___/  v{$version}
+
+EOT;
+
+    echo "\e[1m";
+    echo $banner;
+    echo "\e[0m";
+    echo " The PHP Mini RAT.\n\n";
+    echo " \e[91m+ Author\e[0m: {$author}\n";
+    echo " \e[91m+ Twitter\e[0m: {$twitter}\n";
+    echo " \e[91m+ Website\e[0m: {$web}\n\n";
+
+    $warning = <<<EOT
+ +[\e[91mWARNING\e[0m\e[93m]------------------------------------------+
+ | DEVELOPERS ASSUME NO LIABILITY AND ARE NOT        |
+ | RESPONSIBLE FOR ANY MISUSE OR DAMAGE CAUSED BY    |
+ | THIS PROGRAM  ¯\_(ツ)_/¯                          |
+ +---------------------------------------------------+
+ 
+EOT;
+    echo "\e[93m";
+    echo $warning;
+    echo "\e[0m";
+    echo "\n";
+
 }
 
 /* EOF */
