@@ -1,6 +1,6 @@
 ## pinky v2
 
-![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2.png "pinky v2")
+![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_banner.png "pinky v2")
 
 ### The PHP mini RAT
 
@@ -38,3 +38,5 @@ Now, open your terminal and pass the json file as a parameter.
 ```
 $ php pinky.php config.json
 ```
+
+![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2.png "pinky v2")
