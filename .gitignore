@@ -1,2 +1,4 @@
 .idea/
 *.json
+./output/*.json
+./output/*.php
