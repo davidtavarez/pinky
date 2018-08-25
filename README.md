@@ -53,4 +53,4 @@ $ php pinky.php config.json
 
 ### Contributing.
 
-In order to contribute, please send me a PR :)
+In order to contribute, please, fork this project, create a new branch from **master** and send me the PR :)
