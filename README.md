@@ -49,4 +49,4 @@ $ php pinky.php config.json
 
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_connecting.png "pinky v2")
 
-![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2.png "pinky v2")
+![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_connected.png "pinky v2")
