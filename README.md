@@ -1,4 +1,4 @@
-## pinky v2
+## pinky
 
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_banner.png "pinky v2")
 
@@ -18,7 +18,8 @@ Now, we're ready to generate our agent using the **built-in generator** like thi
 
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_generator.png "pinky v2 agent generator")
 
-I'm using **Obfuscator-Class** by **Pierre-Henry Soria** to obfuscate the agent and the result is pretty good.
+I'm using [Obfuscator-Class](https://github.com/pH-7/Obfuscator-Class "Obfuscator-Class")
+ by [Pierre-Henry Soria](http://ph7.me/ "Obfuscator-Class") to obfuscate the agent and the result is pretty good.
 
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_virustotal.png "virus total")
 
