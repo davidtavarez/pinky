@@ -1,8 +1,4 @@
-## pinky v2
-
-![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_banner.png "pinky v2")
-
-### The PHP mini RAT
+## pinky - The PHP mini RAT
 
 Uploading a webshell is almost always the next step after exploiting a web vulnerability, but services like Cloudflare and the new generation of firewalls does a really good job preventing attackers to run commands in the target via HTTP or HTTPS. Web filtering for content and whitelist applications policy can be easily exploited with a minimum effort and **pinky is a PoC** of that.
 
