@@ -47,4 +47,6 @@ The last step is open your terminal and then pass the json file as a parameter.
 $ php pinky.php config.json
 ```
 
+![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_connecting.png "pinky v2")
+
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2.png "pinky v2")
