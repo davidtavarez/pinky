@@ -6,6 +6,42 @@ Uploading a webshell is almost always the next step after exploiting a web vulne
 
 First, **pinky** tries to find which function is enabled to run system commands; after finding which php function is the best, **all communication is encrypted**, so even the Firewall is enabled to check the traffic it won't be able to know whether the activity is malicious or not. Also, **pinky is able to communicate through any kind of proxy**. In addition of this, we need to send a Basic Authentication (completely, I know) to avoid others to communicate with the agent.
 
+### Instalation.
+
+```
+$ git clone git@github.com:davidtavarez/pinky.git
+Cloning into 'pinky'...
+remote: Counting objects: 223, done.
+remote: Compressing objects: 100% (79/79), done.
+remote: Total 223 (delta 54), reused 72 (delta 27), pack-reused 103
+Receiving objects: 100% (223/223), 385.73 KiB | 73.00 KiB/s, done.
+Resolving deltas: 100% (101/101), done.
+
+$ cd pinky
+
+$ php pinky.php
+       _       _
+  _ __ (_)_ __ | | ___   _
+ | '_ \| | '_ \| |/ / | | |
+ | |_) | | | | |   <| |_| |
+ | .__/|_|_| |_|_|\_\__,  |
+ |_|                 |___/  v2.0
+ The PHP Mini RAT.
+
+ + Author: David Tavarez
+ + Twitter: @davidtavarez
+ + Website: https://davidtavarez.github.io/
+
+ +[WARNING]------------------------------------------+
+ | DEVELOPERS ASSUME NO LIABILITY AND ARE NOT        |
+ | RESPONSIBLE FOR ANY MISUSE OR DAMAGE CAUSED BY    |
+ | THIS PROGRAM  ¯\_(ツ)_/¯                          |
+ +---------------------------------------------------+
+
+
+ [-] I need a json file containing the settings.
+
+```
 ### How to use it.
 
 First, exploit the vulnerability found on your target.
