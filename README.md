@@ -20,7 +20,7 @@ Resolving deltas: 100% (101/101), done.
 $ cd pinky
 
 $ php pinky.php
-       _       _
+        _       _
   _ __ (_)_ __ | | ___   _
  | '_ \| | '_ \| |/ / | | |
  | |_) | | | | |   <| |_| |
