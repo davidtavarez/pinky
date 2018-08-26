@@ -1,14 +1,14 @@
 ## pinky - The PHP mini RAT
 
-Uploading a webshell is almost always the next step after exploiting a web vulnerability, but services like Cloudflare and the new generation of firewalls does a really good job preventing attackers to run commands in the target via HTTP or HTTPS. Web filtering for content and whitelist applications policy can be easily exploited with a minimum effort and **pinky is a PoC** of that.
+Uploading a webshell is almost always the next step after exploiting a web vulnerability, but services like Cloudflare and the new generation of firewalls do a really good job preventing attackers to run commands in the target via HTTP or HTTPS. Web filtering for content and whitelist applications policy can be easily exploited with a minimum effort and **pinky is a PoC** of that.
 
 ### How pinky is different?
 
-First, **pinky** try to find which function is enabled to run system commands; after finding which php function is the best, **all communication is encrypted**, so even the Firewall is enabled to check the traffic it won't be able to know whether the activity is malicious or not. Also, **pinky is able to communicate through any kind of proxy**. In addition of this, we need to send a Basic Authentication (completely, I know) to avoid others to communicate with the agent.
+First, **pinky** tries to find which function is enabled to run system commands; after finding which php function is the best, **all communication is encrypted**, so even the Firewall is enabled to check the traffic it won't be able to know whether the activity is malicious or not. Also, **pinky is able to communicate through any kind of proxy**. In addition of this, we need to send a Basic Authentication (completely, I know) to avoid others to communicate with the agent.
 
 ### How to use it.
 
-First, exploit the vulnerability founded on your target.
+First, exploit the vulnerability found on your target.
 
 Now, we're ready to generate our agent using the **built-in generator** like this:
 
@@ -18,7 +18,7 @@ I'm using **Obfuscator-Class** by **Pierre-Henry Soria** to obfuscate the agent 
 
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_virustotal.png "virus total")
 
-After the agent is generated we need to upload it into the target machine and paste the URL into the json file created previously. If we want (and we must), use a SOCKS5 proxy, we need to add the settings:
+After the agent is generated, we need to upload it into the target machine and paste the URL into the json file created previously. If we want (and we must), use a SOCKS5 proxy, we need to add the settings:
 
 ```
 {
@@ -37,7 +37,7 @@ After the agent is generated we need to upload it into the target machine and pa
 }
 ```
 
-The last step is open your terminal and then pass the json file as a parameter.
+The last step is to open your terminal and then pass the json file as a parameter.
 
 ```
 $ php pinky.php config.json
