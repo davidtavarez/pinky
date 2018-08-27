@@ -332,18 +332,10 @@ function find_tools()
 
     $command = null;
 
-    switch (true) {
-        case stristr(PHP_OS, 'DAR'):
-            $command = 'which';
-            break;
-        case stristr(PHP_OS, 'WIN'):
-            $command = 'where';
-            break;
-        case stristr(PHP_OS, 'LINUX'):
-            $command = 'which';
-            break;
-        default:
-            $command = '';
+    if (DIRECTORY_SEPARATOR === '/') {
+        $command = 'which';
+    } else {
+        $command = 'where';
     }
 
     if (!empty($command)) {
