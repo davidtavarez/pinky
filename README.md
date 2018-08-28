@@ -1,8 +1,8 @@
-Uploading a webshell is almost always the next step after exploiting a web vulnerability, but services like Cloudflare and the new generation of firewalls do a really good job preventing attackers to run commands in the target via HTTP or HTTPS. Web filtering for content and whitelist applications policy can be easily exploited with a minimum effort and **pinky is a PoC** of that.
+Uploading a webshell is almost always the next step after exploiting a web vulnerability, but services like Cloudflare and the new generation of firewalls do a really good job preventing attackers to run commands in the target via HTTP or HTTPS. On the other hand, text content filtering and whitelisting applications policies can be easily exploited with a minimum effort and **pinky is a PoC** of that.
 
-### How pinky is different?
+### How is pinky different?
 
-First, **pinky** tries to find which function is enabled to run system commands; after finding which php function is the best, **all communication is encrypted**, so even the Firewall is enabled to check the traffic it won't be able to know whether the activity is malicious or not. Also, **pinky is able to communicate through any kind of proxy**. In addition of this, we need to send a Basic Authentication (completely, I know) to avoid others to communicate with the agent.
+First, **pinky** tries to find which function is enabled to run system commands; after finding which php function is the best, **all communication is encrypted**, so even if the Firewall is enabled to read the traffic, it won't be able to determine whether the activity is malicious or not. Also, **pinky is able to communicate through any kind of proxy**. In addition to this, we need to send a Basic Authentication (completely insecure, I know!) to avoid others to communicate with the pinky's agent.
 
 ### Installation.
 
@@ -42,13 +42,13 @@ $ php pinky.php
 ```
 ### How to use it.
 
-First, exploit the vulnerability found on your target.
+First, exploit the vulnerability found on the target.
 
 Now, we're ready to generate our agent using the **built-in generator** like this:
 
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_generator.png "pinky v2 agent generator")
 
-I'm using [Obfuscator-Class](https://github.com/pH-7/Obfuscator-Class/ "Obfuscator-Class") by [Pierre-Henry Soria](http://ph7s.github.io/ "Pierre-Henry Soria") to obfuscate the agent and the result is pretty good.
+I'm using [Obfuscator-Class](https://github.com/pH-7/Obfuscator-Class/ "Obfuscator-Class") by [Pierre-Henry Soria](http://ph7s.github.io/ "Pierre-Henry Soria") to obfuscate the agent because results are pretty good.
 
 ![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_virustotal.png "virus total")
 
@@ -71,7 +71,7 @@ After the agent is generated, we need to upload it into the target machine and p
 }
 ```
 
-The last step is to open your terminal and then pass the json file as a parameter.
+The last step is to upload the agent, open your terminal and then pass the json file as a parameter.
 
 ```
 $ php pinky.php config.json
@@ -83,4 +83,4 @@ $ php pinky.php config.json
 
 ### Contributing.
 
-In order to contribute, please, fork this project, create a new branch from **master** and send me the PR. Also you can contribute adding more pages to the [Wiki](https://github.com/davidtavarez/pinky/wiki "Wiki") :)
+In order to contribute, please, ***fork this project***, create a new branch from **master** and send me the PR. Also you can contribute adding more pages to the [Wiki](https://github.com/davidtavarez/pinky/wiki "Wiki") :)
