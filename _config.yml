@@ -11,7 +11,7 @@ minima:
   date_format: "%b %-d, %Y"
 
 description: > 
-  Pinky is a command line web shell designed for remote administration and pen testing, provides a powerfull bash-like console through a PHP agent running on the target, even in restricted environments.
+  Pinky is a command line web shell designed for remote administration and pentesting.
   
 plugins:
  - jekyll-seo-tag
