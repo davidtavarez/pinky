@@ -1,3 +1,21 @@
 theme: minima
-title: pinky
-description: The PHP mini RAT
+title: Pinky - The PHP mini RAT
+
+theme: minima
+
+twitter_username: davidtavarez
+github_username:  davidtavarez
+linkedin_username: davidtavarez
+
+minima:
+  date_format: "%b %-d, %Y"
+
+
+author: davidtavarez
+email: david@punksec.com
+description: > 
+  Pinky is a command line web shell designed for remote administration and pen testing, provides a powerfull bash-like console through a PHP agent running on the target, even in restricted environments.
+  
+plugins:
+ - jekyll-seo-tag
+ 
