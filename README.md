@@ -6,7 +6,7 @@ Uploading a webshell is almost always the next step after exploiting a web vulne
 
 First, **pinky** tries to find which function is enabled to run system commands; after finding which php function is the best, **all communication is encrypted**, so even the Firewall is enabled to check the traffic it won't be able to know whether the activity is malicious or not. Also, **pinky is able to communicate through any kind of proxy**. In addition of this, we need to send a Basic Authentication (completely, I know) to avoid others to communicate with the agent.
 
-### Instalation.
+### Installation.
 
 ```
 $ git clone git@github.com:davidtavarez/pinky.git
