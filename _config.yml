@@ -19,3 +19,6 @@ description: >
 plugins:
  - jekyll-seo-tag
  
+exclude:
+ - Obfuscator-Class
+ - output/
