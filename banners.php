@@ -461,7 +461,7 @@ EOT;
         $monkeys
     );
     echo chr(27) . chr(91) . 'H' . chr(27) . chr(91) . 'J'; //^[H^[J
-    echo "\e[1m";
+    echo "\e[97m";
     echo $ascii_art[rand(0, 19)];
     echo "\e[0m";
 }
