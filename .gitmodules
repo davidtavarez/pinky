@@ -1,0 +1,3 @@
+[submodule "obfuscator"]
+	path = obfuscator
+	url = https://github.com/pH-7/Obfuscator-Class

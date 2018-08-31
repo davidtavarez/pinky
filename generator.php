@@ -1,4 +1,6 @@
 <?php
+require 'obfuscator/src/Obfuscator.php';
+
 $config_template = './templates/target.json';
 $agent_template  = './templates/agent.php';
 $output_dir      = './output/';
@@ -80,7 +82,6 @@ if (!$obfuscate) {
 }
 
 unlink($output_dir . $filename);
-require 'Obfuscator-Class/src/Obfuscator.php';
 
 $agent_data      = str_replace(array(
     '<?php',
