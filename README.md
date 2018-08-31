@@ -77,9 +77,9 @@ The last step is to upload the agent, open your terminal and then pass the json 
 $ php pinky.php config.json
 ```
 
-![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_connecting.png "pinky v2")
+![pinky v2](https://raw.githubusercontent.com/davidtavarez/pinky/master/screenshots/pinkyV2_openning.png "pinky v2")
 
-![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_connected.png "pinky v2")
+![pinky v2](https://raw.githubusercontent.com/davidtavarez/pinky/master/screenshots/pinkyV2_narf.png "pinky v2")
 
 ### Contributing.
 
