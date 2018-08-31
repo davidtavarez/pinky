@@ -72,7 +72,7 @@ $result = send_request($url, array(
 if ($result['status'] == 200) {
     echo "Good.\n";
     echo " [+] Let's parse the host information... ";
-    if(strpos($result['content'],'captcha') === false){
+    if(strpos($result['content'],'captcha') === false && strpos($result['content'],'openssl_encrypt') === false){
         $response    = json_decode(encrypt_decrypt('decrypt', $result['content'], $key, $iv), true);
         $username    = base64_decode($response['user']);
         $path        = base64_decode($response['path']);
@@ -89,11 +89,18 @@ if ($result['status'] == 200) {
             $continue = true;
             echo "Done.\n";
         } else {
-            echo "Failed.\n";
+            echo "Failed, unable to get some information from the target...\n";
         }
     } else {
-        echo "Failed, some Captcha was found, try to reset the Tor circuit...\n";
+        echo "Failed, ";
+        if(strpos($result['content'],'captcha') > -1) {
+            echo "some Captcha was found, try to reset the Tor circuit...\n";
+        } elseif (strpos($result['content'],'openssl_encrypt') > -1){
+            echo "the Target must support Encryption.\n";
+        }
     }
+} else {
+    echo "Failed, agent not found.\n";
 }
 
 if (!$continue) {
