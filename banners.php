@@ -1,6 +1,6 @@
 <?php
 
-function print_banner()
+function print_cool_banner()
 {
     $pinky = <<<EOT
         _       _          

