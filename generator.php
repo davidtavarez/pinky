@@ -16,10 +16,7 @@ if (!isset($options['u'])) {
 $filename = null;
 do {
     $line     = readline(" [?] Filename for the agent: ");
-    $filename = trim(str_replace(array(
-        "\n",
-        "\r"
-    ), '', $line));
+    $filename = trim(str_replace(array("\n", "\r"), '', $line));
     if (strlen($filename) == 0) {
         $filename = null;
     }
@@ -29,9 +26,9 @@ do {
 $url = $options['u'];
 
 try {
-    $login = random_str(6);
-    $password = random_str(8);
-    $key = random_str(16);
+    $login = random_str(32);
+    $password = random_str(32);
+    $key = bin2hex(openssl_random_pseudo_bytes(16));
 }catch (Exception $e){
     exit($e->getMessage());
 }
@@ -43,6 +40,7 @@ $data = str_replace("[LOGIN_HERE]", $login, $data);
 $data = str_replace("[PASSWORD_HERE]", $password, $data);
 
 $agent_file = $output_dir . $filename . '.php';
+$agent_filename = $filename;
 
 file_put_contents($agent_file, $data);
 
@@ -71,7 +69,7 @@ $data = file_get_contents($config_template);
 $data = str_replace("[KEY_HERE]", $key, $data);
 $data = str_replace("[LOGIN_HERE]", $login, $data);
 $data = str_replace("[PASSWORD_HERE]", $password, $data);
-$data = str_replace("[URL_HERE]", "{$url}{$filename}.php", $data);
+$data = str_replace("[URL_HERE]", "{$url}{$agent_filename}.php", $data);
 file_put_contents($output_dir . $filename . '.json', $data);
 echo " [+] Configuration file was generated properly.\n";
 
