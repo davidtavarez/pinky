@@ -9,16 +9,26 @@
  *
  * @return string Raw data encrypted with a key
  */
-function encrypt($plaintext, $secret_key, $method = 'openssql')
+function encrypt($plaintext, $secret_key, $method = 'openssl')
 {
-    $cipher = "AES-256-CBC";
-    $key = hash_pbkdf2('sha256', $secret_key, '', 10000, 0, true);
+    $ciphertext = '';
 
-    $ivlen = openssl_cipher_iv_length($cipher);
-    $iv = openssl_random_pseudo_bytes($ivlen);
-    $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
-    $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
-    $ciphertext = base64_encode($iv . $hmac . $ciphertext_raw);
+    if($method=='openssl') {
+        $key = $secret_key;
+        $cipher = "AES-256-CBC";
+        $ivlen = openssl_cipher_iv_length($cipher);
+        $iv = openssl_random_pseudo_bytes($ivlen);
+        $ciphertext_raw = openssl_encrypt($plaintext, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
+        $hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
+        $ciphertext = base64_encode($iv . $hmac . $ciphertext_raw);
+    } elseif ($method='mcrypt') {
+        $key = pack('H*', $secret_key);
+        $iv_size = @mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC);
+        $iv = @mcrypt_create_iv($iv_size, MCRYPT_RAND);
+        $ciphertext = @mcrypt_encrypt(MCRYPT_RIJNDAEL_256, $key, $plaintext, MCRYPT_MODE_CBC, $iv);
+        $ciphertext = $iv . $ciphertext;
+        $ciphertext = base64_encode($ciphertext);
+    }
 
     return $ciphertext;
 }
@@ -32,20 +42,27 @@ function encrypt($plaintext, $secret_key, $method = 'openssql')
  *
  * @return string Raw data encrypted with a key
  */
-function decrypt($ciphertext, $secret_key)
+function decrypt($ciphertext, $secret_key, $method = 'openssl')
 {
-    $cipher = "AES-256-CBC";
-    $key = hash_pbkdf2('sha256', $secret_key, '', 10000, 0, true);
+    $ciphertext_decoded = base64_decode($ciphertext);
 
-    $c = base64_decode($ciphertext);
-    $ivlen = openssl_cipher_iv_length($cipher);
-    $iv = substr($c, 0, $ivlen);
-    $hmac = substr($c, $ivlen, $sha2len = 32);
-    $ciphertext_raw = substr($c, $ivlen + $sha2len);
-    $original_plaintext = openssl_decrypt($ciphertext_raw, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
-    $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
-
-    return hash_equals($hmac, $calcmac) ? $original_plaintext : null;
+    if($method=='openssl') {
+        $key = $secret_key;
+        $cipher = "AES-256-CBC";
+        $ivlen = openssl_cipher_iv_length($cipher);
+        $iv = substr($ciphertext_decoded, 0, $ivlen);
+        $hmac = substr($ciphertext_decoded, $ivlen, $sha2len = 32);
+        $ciphertext_raw = substr($ciphertext_decoded, $ivlen + $sha2len);
+        $original_plaintext = @openssl_decrypt($ciphertext_raw, $cipher, $key, $options = OPENSSL_RAW_DATA, $iv);
+        $calcmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary = true);
+        return trim($original_plaintext);
+    } elseif ($method='mcrypt') {
+        $key = pack('H*', $secret_key);
+        $iv_size = @mcrypt_get_iv_size(MCRYPT_RIJNDAEL_256, MCRYPT_MODE_CBC);
+        $iv_dec = substr($ciphertext_decoded, 0, $iv_size);
+        $ciphertext_dec = substr($ciphertext_decoded, $iv_size);
+        return trim(@mcrypt_decrypt(MCRYPT_RIJNDAEL_256, $key, $ciphertext_dec, MCRYPT_MODE_CBC, $iv_dec));
+    }
 }
 
 /**
@@ -57,14 +74,14 @@ function decrypt($ciphertext, $secret_key)
  *
  * @return array
  */
-function make_request($cmd, $path, $key)
+function make_request($cmd, $path, $key, $method)
 {
     $data = array(
         'p' => base64_encode($path)
     );
     $position = strpos($cmd, 'pinky:');
     if ($position === false) {
-        $data['c'] = encrypt(base64_encode($cmd), $key);
+        $data['c'] = encrypt(base64_encode($cmd), $key, $method);
     } else {
         $cmd = str_replace('pinky:', '', $cmd);
         $input = explode(' ', $cmd);
@@ -80,8 +97,8 @@ function make_request($cmd, $path, $key)
                     $name = base64_encode(basename($parsed['path']));
                     $url = base64_encode($entry);
                     $array = array(
-                        'n' => encrypt('encrypt', $name, $key),
-                        'p' => encrypt('encrypt', $url, $key)
+                        'n' => encrypt($name, $key, $method),
+                        'p' => encrypt($url, $key, $method)
                     );
                     array_push($data['f']['u'], $array);
                 } else {
@@ -89,8 +106,8 @@ function make_request($cmd, $path, $key)
                     if (!is_null($file)) {
                         $name = base64_encode(basename(realpath($entry)));
                         $array = array(
-                            'n' => encrypt('encrypt', $name, $key),
-                            'p' => encrypt('encrypt', $file, $key)
+                            'n' => encrypt($name, $key, $method),
+                            'p' => encrypt($file, $key, $method)
                         );
                         array_push($data['f']['b'], $array);
                     } else {
@@ -103,7 +120,7 @@ function make_request($cmd, $path, $key)
             $data['f']['d'] = array(); // files to download
             foreach ($input as $entry) {
                 $name = base64_encode($entry);
-                array_push($data['f']['d'], encrypt('encrypt', $name, $key));
+                array_push($data['f']['d'], encrypt($name, $key, $method));
             }
         }
     }
@@ -269,7 +286,7 @@ EOT;
  +[\e[91mWARNING\e[0m\e[93m]------------------------------------------+
  | DEVELOPERS ASSUME NO LIABILITY AND ARE NOT        |
  | RESPONSIBLE FOR ANY MISUSE OR DAMAGE CAUSED BY    |
- | THIS PROGRAM  Â¯\_(ãƒ„)_/Â¯                          |
+ | THIS PROGRAM  ¯\_(ツ)_/¯                          |
  +---------------------------------------------------+
  
 EOT;

