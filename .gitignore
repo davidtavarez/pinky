@@ -2,4 +2,6 @@
 *.json
 ./output/*.json
 ./output/*.php
+./test/*.php
+
 
