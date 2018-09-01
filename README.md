@@ -46,7 +46,7 @@ First, exploit the vulnerability found on the target.
 
 Now, we're ready to generate our agent using the **built-in generator** like this:
 
-![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_generator.png "pinky v2 agent generator")
+![pinky v2](https://github.com/davidtavarez/pinky/raw/master/screenshots/pinkyV2_generator_new.png "pinky v2 agent generator")
 
 I'm using [Obfuscator-Class](https://github.com/pH-7/Obfuscator-Class/ "Obfuscator-Class") by [Pierre-Henry Soria](http://ph7s.github.io/ "Pierre-Henry Soria") to obfuscate the agent because results are pretty good.
 
@@ -57,7 +57,6 @@ After the agent is generated, we need to upload it into the target machine and p
 ```
 {
   "key":"[KEY]",
-  "iv": "[IV]",
   "url":"[URL]",
   "login":{
     "username":"[LOGIN]",
@@ -67,7 +66,8 @@ After the agent is generated, we need to upload it into the target machine and p
     "ip":"127.0.0.1",
     "port":9150,
     "type":"SOCKS5"
-  }
+  },
+  "cookies": "[COOKIES]"
 }
 ```
 
