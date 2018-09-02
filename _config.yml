@@ -1,7 +1,5 @@
-theme: jekyll-theme-hacker
-title: Pinky - The PHP mini RAT
-
 theme: minima
+title: Pinky - The PHP mini RAT
 
 author: davidtavarez
 email: david@punksec.com
