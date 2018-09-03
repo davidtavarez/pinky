@@ -1,4 +1,4 @@
-theme: minima
+theme: jekyll-theme-slate
 title: Pinky - The PHP mini RAT
 
 author: davidtavarez
