@@ -1,7 +1,3 @@
 .idea/*
-*.json
-./output/*.json
-./output/*.php
-./test/*.php
-
-
+output/*
+test/*
